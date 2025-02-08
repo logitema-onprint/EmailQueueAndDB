@@ -9,6 +9,7 @@ export const queueRoutes = async (server: Express) => {
   server.get("/api/queue/:jobId", queueControllers.getQueue);
   server.post("/api/queue/pause/:jobId", queueControllers.pauseQueue);
   server.post("/api/queue/resume/:jobId", queueControllers.resumeQueue);
+  server.get("/api/queue/status/:status", queueControllers.getAllQueuesByStatus);
 };
 
 export default router;

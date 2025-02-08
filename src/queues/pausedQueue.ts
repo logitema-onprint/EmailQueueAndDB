@@ -9,7 +9,7 @@ export const PausedQueue = new Queue("paused-queue", {
 });
 
 (async () => {
-  await PausedQueue.pause(true);
+  await PausedQueue.pause();
 })();
 
 PausedQueue.process(() => {});

@@ -18,7 +18,7 @@ export const EmailQueue = new Bull<EmailJob>("email-queue", {
   },
 });
 
-EmailQueue.process(async (job) => {
+EmailQueue.process(3, async (job) => {
   const { queueId, email, payload } = job.data;
   const currentAttempt = job.attemptsMade + 1;
   logger.info(`Attempt ${currentAttempt}/3 for job ${job.id}`);
@@ -29,6 +29,10 @@ EmailQueue.process(async (job) => {
   }
 
   throw new Error(`Email service failed for job ${job.id}`);
+});
+
+EmailQueue.on("paused", async () => {
+  logger.info("Email queue paused");
 });
 
 EmailQueue.on("waiting", async (jobId) => {

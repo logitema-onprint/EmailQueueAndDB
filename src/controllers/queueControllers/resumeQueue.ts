@@ -29,8 +29,6 @@ export const resumeQueue: RequestHandler = async (
       return;
     }
 
-    console.log(pausedJob);
-
     await EmailQueue.add(pausedJob?.data, {
       jobId: jobId,
       delay: pausedJob.data.timeLeft,

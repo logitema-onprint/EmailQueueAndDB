@@ -3,6 +3,7 @@ import { createQueue } from "./createQueue";
 import { getQueue } from "./getQueue";
 import { pauseQueue } from "./pauseQueue";
 import { resumeQueue } from "./resumeQueue";
+import { getAllQueuesByStatus } from "./getAllQueuesByStatus";
 
 const queueControllers = {
   createQueue,
@@ -10,6 +11,7 @@ const queueControllers = {
   getQueue,
   pauseQueue,
   resumeQueue,
+  getAllQueuesByStatus,
 };
 
 export default queueControllers;
