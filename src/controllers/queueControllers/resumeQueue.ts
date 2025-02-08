@@ -2,9 +2,9 @@ import { Request, RequestHandler, Response } from "express";
 import { EmailQueue } from "../../queues/emailQueue";
 import logger from "../../utils/logger";
 import { queuesQueries } from "../../queries/queuesQueries";
-import { QueueService } from "../../services/queueService";
+import { PausedQueue } from "../../queues/pausedQueue";
 
-export const deleteQueue: RequestHandler = async (
+export const resumeQueue: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
@@ -19,36 +19,38 @@ export const deleteQueue: RequestHandler = async (
       return;
     }
 
-    const queueItem = await QueueService.getJobFromQueues(jobId);
+    const pausedJob = await PausedQueue.getJob(jobId);
 
-    if (!queueItem) {
+    if (!pausedJob) {
       res.status(404).json({
         success: false,
-        message: `Job ${jobId} not found in any queue`,
+        message: "Job not found",
       });
       return;
     }
 
-    const deleteBullQueue = queueItem
-      ? queueItem.job.remove()
-      : Promise.resolve();
-    const deleteDynamoDB = queuesQueries.deleteQueue(jobId);
+    console.log(pausedJob);
 
-    const [bullResult, dynamoResult] = await Promise.all([
-      deleteBullQueue,
-      deleteDynamoDB,
-    ]);
+    await EmailQueue.add(pausedJob?.data, {
+      jobId: jobId,
+      delay: pausedJob.data.timeLeft,
+      attempts: pausedJob.data.attempts,
+    });
+    await pausedJob.remove();
+    await queuesQueries.updateStatusQuery(jobId, "ACTIVE");
+
+    logger.info(`Job ${jobId} resumed`);
 
     res.status(200).json({
       success: true,
-      message: "Job successfully removed",
+      message: "Job successfully resumed",
     });
   } catch (error) {
-    logger.error("Failed to remove job", error);
+    logger.error("Failed to resumed job", error);
 
     res.status(500).json({
       success: false,
-      message: "Failed to remove job",
+      message: "Failed to resumed job",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }

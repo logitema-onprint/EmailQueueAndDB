@@ -1,7 +1,5 @@
 import { RequestHandler, Request, Response } from "express";
-import { EmailQueue } from "../../queues/emailQueue";
-import { queuesQueries } from "../../queries/queuesQueries";
-import logger from "../../utils/logger";
+import { QueueService } from "../../services/queueService";
 
 export const getQueue: RequestHandler = async (req: Request, res: Response) => {
   try {
@@ -12,20 +10,17 @@ export const getQueue: RequestHandler = async (req: Request, res: Response) => {
         message: "Missing jobId",
       });
     }
-    const job = await EmailQueue.getJob(jobId);
+    const result = await QueueService.getJobFromQueues(jobId);
 
-    if (!job) {
+    if (!result) {
       res.status(404).json({
         success: false,
-        message: `Job ${jobId} not found`,
+        message: `Job ${jobId} not found in any queue`,
       });
     }
-    logger.success(`Job ${jobId} found`);
-    const item = await queuesQueries.getQuery(jobId);
-    logger.success(`Job ${item?.item?.jobId} found in DynamoDB`);
     res.status(200).json({
       success: true,
-      data: item.item,
+      data: result,
     });
   } catch (error) {
     res.status(500).json({
