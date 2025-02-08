@@ -1,0 +1,30 @@
+version: "3"
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SMTP_HOST=your-smtp-host
+      - SMTP_PORT=587
+      - SMTP_USER=your-smtp-user
+      - SMTP_PASS=your-smtp-password
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_ENV=development
+    depends_on:
+      - redis
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
