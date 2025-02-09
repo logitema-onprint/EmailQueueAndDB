@@ -11,7 +11,8 @@ export const getQueue: RequestHandler = async (req: Request, res: Response) => {
       });
     }
     const result = await QueueService.getJobFromQueues(jobId);
-
+    const state = await result?.job.getState();
+    console.log(state);
     if (!result) {
       res.status(404).json({
         success: false,

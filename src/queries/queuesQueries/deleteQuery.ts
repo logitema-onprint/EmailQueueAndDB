@@ -3,7 +3,6 @@ import config from "../../config";
 import { dynamoDb } from "../../services/dynamoDb";
 
 export async function deleteQueue(jobId: string) {
-  console.log(jobId);
   const command = new DeleteCommand({
     TableName: config.aws.queueTableName,
     Key: {

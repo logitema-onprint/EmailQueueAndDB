@@ -1,8 +1,15 @@
-import Queue from "bull";
+import { Queue, Worker } from "bullmq";
 import config from "../config";
 
 export const PausedQueue = new Queue("paused-queue", {
-  redis: {
+  connection: {
+    host: config.redis.host,
+    port: config.redis.port,
+  },
+});
+
+const worker = new Worker("paused-queue", async (job) => {}, {
+  connection: {
     host: config.redis.host,
     port: config.redis.port,
   },
@@ -12,4 +19,7 @@ export const PausedQueue = new Queue("paused-queue", {
   await PausedQueue.pause();
 })();
 
-PausedQueue.process(() => {});
+process.on("SIGTERM", async () => {
+  await PausedQueue.close();
+  await worker.close();
+});

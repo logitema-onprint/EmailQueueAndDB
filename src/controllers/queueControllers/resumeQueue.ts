@@ -29,13 +29,19 @@ export const resumeQueue: RequestHandler = async (
       return;
     }
 
-    await EmailQueue.add(pausedJob?.data, {
-      jobId: jobId,
-      delay: pausedJob.data.timeLeft,
-      attempts: pausedJob.data.attempts,
-    });
+    // BullMQ requires job name as first parameter
+    await EmailQueue.add(
+      "email-job", // job name
+      pausedJob.data,
+      {
+        jobId: jobId,
+        delay: pausedJob.data.timeLeft,
+        attempts: pausedJob.data.attempts,
+      }
+    );
+
     await pausedJob.remove();
-    await queuesQueries.updateStatusQuery(jobId, "ACTIVE");
+    await queuesQueries.updateStatusQuery(jobId, "PENDING");
 
     logger.info(`Job ${jobId} resumed`);
 
@@ -44,11 +50,11 @@ export const resumeQueue: RequestHandler = async (
       message: "Job successfully resumed",
     });
   } catch (error) {
-    logger.error("Failed to resumed job", error);
+    logger.error("Failed to resume job", error);
 
     res.status(500).json({
       success: false,
-      message: "Failed to resumed job",
+      message: "Failed to resume job",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }

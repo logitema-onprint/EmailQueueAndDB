@@ -29,6 +29,7 @@ export const createQueue: RequestHandler = async (
     const id = uuidv4();
 
     const job = await EmailQueue.add(
+      "email-job",
       {
         queueId: id,
         email,
@@ -62,6 +63,7 @@ export const createQueue: RequestHandler = async (
 
     const result = await queuesQueries.createQueue(queueItem);
     if (result.error) {
+      await job.remove();
       throw new Error(result.error);
     }
 

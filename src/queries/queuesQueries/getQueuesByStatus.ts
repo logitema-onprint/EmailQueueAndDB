@@ -1,4 +1,4 @@
-import { QueryCommand } from "@aws-sdk/client-dynamodb";
+import { QueryCommand } from "@aws-sdk/lib-dynamodb";
 import config from "../../config";
 import { dynamoDb } from "../../services/dynamoDb";
 import logger from "../../utils/logger";
@@ -16,7 +16,7 @@ export async function getQueuesByStatus(
       "#status": "status",
     },
     ExpressionAttributeValues: {
-      ":status": { S: status },
+      ":status": status,
     },
     Limit: limit,
     ExclusiveStartKey: lastEvaluatedKey,

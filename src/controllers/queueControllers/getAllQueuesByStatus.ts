@@ -5,7 +5,6 @@ import { queuesQueries } from "../../queries/queuesQueries";
 import { PausedQueue } from "../../queues/pausedQueue";
 import logger from "../../utils/logger";
 import { convertBullToDynamoStatus } from "../../helpers/convertBullToDynamoStatus";
-import { log } from "console";
 
 export const getAllQueuesByStatus: RequestHandler = async (
   req: Request,
@@ -13,6 +12,12 @@ export const getAllQueuesByStatus: RequestHandler = async (
 ) => {
   try {
     const { status } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const itemsPerPage = 20;
+    const lastEvaluatedKey = req.query.lastEvaluatedKey
+      ? JSON.parse(req.query.lastEvaluatedKey as string)
+      : undefined;
+
     const validStatus = [
       "active",
       "completed",
@@ -21,7 +26,6 @@ export const getAllQueuesByStatus: RequestHandler = async (
       "waiting",
       "paused",
     ] as const;
-    const dynamoStatus = convertBullToDynamoStatus(status as JobStatus);
 
     if (!status || !validStatus.includes(status as JobStatus)) {
       res.status(400).json({
@@ -29,20 +33,49 @@ export const getAllQueuesByStatus: RequestHandler = async (
         message: `Invalid status. Must be one of: ${validStatus.join(",")}`,
       });
     }
+
+    const dynamoStatus = convertBullToDynamoStatus(status as JobStatus);
+
     const jobs =
       status === "paused"
         ? await PausedQueue.getJobs([status as JobStatus])
         : await EmailQueue.getJobs([status as JobStatus]);
-    const result = await queuesQueries.getQueuesByStatus(dynamoStatus, 20);
-    const dyanmoJobCount = await queuesQueries.getQueueCount(dynamoStatus)
+
+    const totalItems = await queuesQueries.getQueueCount(dynamoStatus);
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    const result = await queuesQueries.getQueuesByStatus(
+      dynamoStatus,
+      itemsPerPage,
+      lastEvaluatedKey
+    );
 
     res.status(200).json({
       success: true,
-      bullJobCount: jobs.length,
-      bullJobIds: jobs.map((job) => job.id),
-      dynamoDBJobCount: dyanmoJobCount,
+      data: {
+        bull: {
+          bullJobCount: jobs.length,
+          bullJobIds: jobs.map((job) => job.id),
+        },
+        dynamo: {
+          dynamoJobCount: totalItems,
+          items: result.items,
+        },
+      },
+      pagination: {
+        currentPage: page,
+        totalPages,
+        itemsPerPage: itemsPerPage,
+        totalItems,
+        nextPage: page < totalPages ? page + 1 : null,
+        previousPage: page > 1 ? page - 1 : null,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+      lastEvaluatedKey: result.lastEvaluatedKey,
     });
   } catch (error) {
+    logger.error("Failed to get jobs", error);
     res.status(500).json({
       success: false,
       message: "Failed to get jobs",

@@ -4,7 +4,6 @@ import logger from "../../utils/logger";
 import { queuesQueries } from "../../queries/queuesQueries";
 import { PausedQueue } from "../../queues/pausedQueue";
 import { QueueService } from "../../services/queueService";
-import { log } from "console";
 
 export const pauseQueue: RequestHandler = async (
   req: Request,

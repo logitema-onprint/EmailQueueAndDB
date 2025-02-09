@@ -4,6 +4,7 @@ import { getQueue } from "./getQueue";
 import { pauseQueue } from "./pauseQueue";
 import { resumeQueue } from "./resumeQueue";
 import { getAllQueuesByStatus } from "./getAllQueuesByStatus";
+import { updateQueueSendTime } from "./updateQueueSendTime";
 
 const queueControllers = {
   createQueue,
@@ -12,6 +13,7 @@ const queueControllers = {
   pauseQueue,
   resumeQueue,
   getAllQueuesByStatus,
+  updateQueueSendTime,
 };
 
 export default queueControllers;

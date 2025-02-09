@@ -1,5 +1,4 @@
 import { Request, RequestHandler, Response } from "express";
-import { EmailQueue } from "../../queues/emailQueue";
 import logger from "../../utils/logger";
 import { queuesQueries } from "../../queries/queuesQueries";
 import { QueueService } from "../../services/queueService";
