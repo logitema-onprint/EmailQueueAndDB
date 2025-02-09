@@ -1,5 +1,7 @@
 import { RequestHandler, Request, Response } from "express";
 import { QueueService } from "../../services/queueService";
+import logger from "../../utils/logger";
+import { EmailQueue } from "../../queues/emailQueue";
 
 export const getQueue: RequestHandler = async (req: Request, res: Response) => {
   try {
@@ -12,7 +14,8 @@ export const getQueue: RequestHandler = async (req: Request, res: Response) => {
     }
     const result = await QueueService.getJobFromQueues(jobId);
     const state = await result?.job.getState();
-    console.log(state);
+    logger.info("Jobstate: ", state);
+
     if (!result) {
       res.status(404).json({
         success: false,

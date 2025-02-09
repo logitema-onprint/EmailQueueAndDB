@@ -24,7 +24,6 @@ export const updateQueueSendTime: RequestHandler = async (
       return;
     }
 
-    const now = Date.now();
     await job.job.changeDelay(sendTime);
 
     res.status(200).json({

@@ -19,7 +19,7 @@ const worker = new Worker<EmailJob>(
     const currentAttempt = job.attemptsMade + 1;
     logger.info(`Processing attempt ${currentAttempt}/3 for email: ${email}`);
 
-    const emailSent = Math.random() > 0.7;
+    const emailSent = Math.random() > 0.5;
 
     if (emailSent) {
       return { sent: true, queueId };
@@ -36,7 +36,6 @@ const worker = new Worker<EmailJob>(
     concurrency: 3,
   }
 );
-
 
 const queueEvents = new QueueEvents("email-queue", {
   connection: {
@@ -81,16 +80,6 @@ queueEvents.on("added", async ({ jobId }) => {
     await queuesQueries.updateStatusQuery(job.data.queueId, "QUEUED");
     logger.info(`Email queued for: ${jobId}`);
   }
-});
-
-// Error handling for the worker
-worker.on("error", (err) => {
-  logger.error("Worker error:", err);
-});
-
-// Error handling for queue events
-queueEvents.on("error", (err) => {
-  logger.error("Queue events error:", err);
 });
 
 export default worker;
