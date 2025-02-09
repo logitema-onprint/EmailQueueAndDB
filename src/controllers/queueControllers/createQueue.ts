@@ -51,7 +51,7 @@ export const createQueue: RequestHandler = async (
       jobId: id,
       tag: tag,
       email: email,
-      status: "PENDING",
+      status: "QUEUED",
       attempts: 3,
       payload: {
         message: "Yo guys this the payload",

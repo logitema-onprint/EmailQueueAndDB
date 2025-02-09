@@ -29,19 +29,15 @@ export const resumeQueue: RequestHandler = async (
       return;
     }
 
-    // BullMQ requires job name as first parameter
-    await EmailQueue.add(
-      "email-job", // job name
-      pausedJob.data,
-      {
-        jobId: jobId,
-        delay: pausedJob.data.timeLeft,
-        attempts: pausedJob.data.attempts,
-      }
-    );
+    await EmailQueue.add("email-job", pausedJob.data, {
+      jobId: jobId,
+      delay: pausedJob.data.timeLeft,
+      attempts: pausedJob.data.attempts,
+    });
 
     await pausedJob.remove();
-    await queuesQueries.updateStatusQuery(jobId, "PENDING");
+    await queuesQueries.updateStatusQuery(jobId, "QUEUED");
+    await queuesQueries.updateSendTimeQuery(jobId, pausedJob.data.timeLeft);
 
     logger.info(`Job ${jobId} resumed`);
 

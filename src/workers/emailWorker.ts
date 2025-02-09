@@ -17,15 +17,15 @@ const worker = new Worker<EmailJob>(
   async (job) => {
     const { queueId, email, payload } = job.data;
     const currentAttempt = job.attemptsMade + 1;
+    await queuesQueries.updateStatusQuery(job.data.queueId, "SENDING");
     logger.info(`Processing attempt ${currentAttempt}/3 for email: ${email}`);
 
-    const emailSent = Math.random() > 0.5;
+    const emailSent = Math.random() > 0.9;
 
     if (emailSent) {
       return { sent: true, queueId };
     }
 
-    // Create a cleaner error message
     throw new Error(`Failed to send email on attempt ${currentAttempt}`);
   },
   {
@@ -54,7 +54,6 @@ worker.on("completed", async (job: Job<EmailJob>) => {
 });
 
 worker.on("active", async (job: Job<EmailJob>) => {
-  await queuesQueries.updateStatusQuery(job.data.queueId, "SENDING");
   logger.info(`Starting to process job: ${job.id} for: ${job.data.email}`);
 });
 

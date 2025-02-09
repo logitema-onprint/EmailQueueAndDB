@@ -1,16 +1,21 @@
 import { dynamoDb } from "../../services/dynamoDb";
 import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import config from "../../config";
+
 export async function updateSendTimeQuery(jobId: string, sendTime: number) {
+  const timestamp = new Date().toISOString();
   const command = new UpdateCommand({
     TableName: config.aws.queueTableName,
     Key: {
       jobId: jobId,
     },
-    UpdateExpression: "SET scheduledFor = :scheduledFor",
+    UpdateExpression:
+      "SET scheduledFor = :scheduledFor, updatedAt = :updatedAt",
     ExpressionAttributeValues: {
       ":scheduledFor": sendTime,
+      ":updatedAt": timestamp,
     },
+
     ConditionExpression: "attribute_exists(jobId)",
     ReturnValues: "ALL_NEW",
   });

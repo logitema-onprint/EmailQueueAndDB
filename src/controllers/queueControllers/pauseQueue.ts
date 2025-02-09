@@ -29,7 +29,15 @@ export const pauseQueue: RequestHandler = async (
       });
       return;
     }
+    const jobState = await job.getState();
 
+    if (jobState !== "delayed") {
+      res.status(400).json({
+        success: false,
+        message: "Job is not in delayed queue",
+      });
+      return;
+    }
     const timeLeft = await QueueService.getTimeLeft(jobId);
     logger.info("Time left:", timeLeft);
 

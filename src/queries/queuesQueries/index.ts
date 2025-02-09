@@ -3,6 +3,7 @@ import { deleteQueue } from "./deleteQuery";
 import { getQuery } from "./getQuery";
 import { getQueueCount } from "./getQueueCount";
 import { getQueuesByStatus } from "./getQueuesByStatus";
+import { updateSendTimeQuery } from "./updateQuery";
 import { updateStatusQuery } from "./updateStatusQuery";
 
 export const queuesQueries = {
@@ -12,4 +13,5 @@ export const queuesQueries = {
   updateStatusQuery,
   getQueuesByStatus,
   getQueueCount,
+  updateSendTimeQuery,
 };

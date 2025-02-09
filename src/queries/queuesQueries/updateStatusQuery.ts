@@ -3,17 +3,19 @@ import config from "../../config";
 import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 export async function updateStatusQuery(jobId: string, status: string) {
+  const timestamp = new Date().toISOString();
   const command = new UpdateCommand({
     TableName: config.aws.queueTableName,
     Key: {
       jobId: jobId,
     },
-    UpdateExpression: "set #status = :status",
+    UpdateExpression: "set #status = :status, updatedAt = :updatedAt",
     ExpressionAttributeNames: {
       "#status": "status",
     },
     ExpressionAttributeValues: {
       ":status": status,
+      ":updatedAt": timestamp,
     },
     ReturnValues: "ALL_NEW",
   });
