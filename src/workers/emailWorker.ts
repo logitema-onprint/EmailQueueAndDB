@@ -2,31 +2,37 @@ import { Worker, QueueEvents, Job } from "bullmq";
 import { queuesQueries } from "../queries/queuesQueries";
 import logger from "../utils/logger";
 import { EmailQueue } from "../queues/emailQueue";
+import { stepQueries } from "../queries/stepQueries";
+
+interface Step {
+  stepId: string;
+  status: "pending" | "completed";
+  completedAt: string | null;
+}
 
 interface EmailJob {
   queueId: string;
   email: string;
   tag: string;
-  payload: {
-    message: string;
-  };
+  currentStep: number;
+  currentStepId: string;
+  steps: Record<string, Step>;
 }
 
 const worker = new Worker<EmailJob>(
   "email-queue",
   async (job) => {
-    const { queueId, email, payload } = job.data;
+    const { queueId, email, currentStepId } = job.data;
     const currentAttempt = job.attemptsMade + 1;
-    await queuesQueries.updateStatusQuery(job.data.queueId, "SENDING");
+
+    await queuesQueries.updateStatusQuery(queueId, "SENDING");
     logger.info(`Processing attempt ${currentAttempt}/3 for email: ${email}`);
 
-    const emailSent = Math.random() > 0.9;
-
-    if (emailSent) {
-      return { sent: true, queueId };
+    try {
+      // Your email sending logic here
+    } catch (error) {
+      throw error;
     }
-
-    throw new Error(`Failed to send email on attempt ${currentAttempt}`);
   },
   {
     connection: {
@@ -44,17 +50,75 @@ const queueEvents = new QueueEvents("email-queue", {
   },
 });
 
-// Event handlers
 worker.on("completed", async (job: Job<EmailJob>) => {
-  const successAttempt = job.attemptsMade;
-  await queuesQueries.updateStatusQuery(job.data.queueId, "SENT");
-  logger.success(
-    `Email delivered to: ${job.id} on attempt ${successAttempt}/3`
-  );
+  const { queueId, currentStep, steps } = job.data;
+  console.log("Current job data:", { queueId, currentStep, steps });
+
+  try {
+    const stepKeys = Object.keys(steps);
+    const currentKey = stepKeys[currentStep];
+    console.log("Current step info:", { currentKey, currentStep });
+
+    const updatedSteps = { ...steps };
+    updatedSteps[currentKey] = {
+      ...steps[currentKey],
+      status: "completed",
+      completedAt: new Date().toISOString(),
+    };
+    console.log("Steps after update:", updatedSteps);
+
+    const nextStep = currentStep + 1;
+    const nextKey = stepKeys[nextStep];
+
+    if (nextKey) {
+      console.log("Moving to next step:", { nextStep, nextKey });
+
+      const nextStepConfig = await stepQueries.getStepQuery(
+        steps[nextKey].stepId
+      );
+      console.log("Next step config:", nextStepConfig);
+
+      await EmailQueue.remove(queueId);
+
+      // Create new job
+      await EmailQueue.add(
+        "email-job",
+        {
+          ...job.data,
+          currentStep: nextStep,
+          currentStepId: steps[nextKey].stepId,
+          steps: updatedSteps,
+        },
+        {
+          delay: nextStepConfig?.item?.waitDuration,
+          attempts: 3,
+          jobId: queueId,
+        }
+      );
+
+      await queuesQueries.updateQueue(queueId, {
+        steps: updatedSteps,
+        currentStepId: steps[nextKey].stepId,
+        currentStep: nextStep,
+        status: "QUEUED",
+      });
+    } else {
+      logger.success("All steps completed");
+      await queuesQueries.updateQueue(queueId, {
+        steps: updatedSteps,
+        status: "COMPLETED",
+      });
+    }
+  } catch (error) {
+    console.error("Error in completed handler:", error);
+    throw error;
+  }
 });
 
 worker.on("active", async (job: Job<EmailJob>) => {
-  logger.info(`Starting to process job: ${job.id} for: ${job.data.email}`);
+  logger.info(
+    `Processing step ${job.data.currentStepId} for queue ${job.data.queueId}`
+  );
 });
 
 worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
@@ -68,16 +132,17 @@ worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
 
   await queuesQueries.updateStatusQuery(job.data.queueId, "FAILED");
   logger.error(
-    `Email delivery failed for: ${job.id} (Attempt ${attempt}/${maxAttempts})`
+    `Step ${job.data.currentStepId} failed for queue ${job.data.queueId} (Attempt ${attempt}/${maxAttempts})`
   );
 });
 
-// Queue events
 queueEvents.on("added", async ({ jobId }) => {
   const job = await EmailQueue.getJob(jobId);
   if (job) {
     await queuesQueries.updateStatusQuery(job.data.queueId, "QUEUED");
-    logger.info(`Email queued for: ${jobId}`);
+    logger.info(
+      `Step ${job.data.currentStepId} queued for queue ${job.data.queueId}`
+    );
   }
 });
 

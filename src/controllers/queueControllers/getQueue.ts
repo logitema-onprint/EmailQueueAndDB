@@ -1,7 +1,6 @@
 import { RequestHandler, Request, Response } from "express";
 import { QueueService } from "../../services/queueService";
 import logger from "../../utils/logger";
-import { EmailQueue } from "../../queues/emailQueue";
 
 export const getQueue: RequestHandler = async (req: Request, res: Response) => {
   try {
