@@ -6,8 +6,8 @@ COPY package*.json ./
 COPY tsconfig.json ./
 COPY nodemon.json ./
 
-RUN npm install
-RUN npm install uuid @types/uuid
+RUN npm ci && \
+    npm install -g typescript ts-node nodemon
 
 COPY . .
 
