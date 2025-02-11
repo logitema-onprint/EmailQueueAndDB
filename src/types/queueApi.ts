@@ -1,11 +1,10 @@
 export interface QueueItem {
   jobId: string;
-  tag: string;
+  tagId: string;
+  tagName: string
   email: string;
   status: string;
   attempts: number;
-  currentStepId: string;
-  steps: {};
   error?: string;
   createdAt: string;
   updatedAt: string;

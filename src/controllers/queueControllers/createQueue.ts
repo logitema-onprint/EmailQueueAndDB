@@ -3,13 +3,17 @@ import logger from "../../utils/logger";
 import { EmailQueue } from "../../queues/emailQueue";
 import { v4 as uuidv4 } from "uuid";
 import { queuesQueries } from "../../queries/queuesQueries";
-import { QueueItem, Step } from "../../types/queueApi";
+import { QueueItem } from "../../types/queueApi";
+import { tagQueries } from "../../queries/tagQueries";
+import { RevalidateService } from "../../services/revalidateNext";
 
 interface CreateQueueRequest {
   email: string;
-  tag: string;
-  scheduledFor: number;
-  steps: Record<string, Step>;
+  tags: Array<{
+    tagId: string;
+    tagName: string;
+    scheduledFor: number;
+  }>;
 }
 
 export const createQueue: RequestHandler = async (
@@ -17,9 +21,10 @@ export const createQueue: RequestHandler = async (
   res: Response
 ) => {
   try {
-    const { email, tag, scheduledFor, steps } = req.body;
-
-    if (!email || !tag || !scheduledFor || !steps) {
+    const { email, tags } = req.body;
+  
+    // Validation
+    if (!email || !tags || tags.length === 0) {
       res.status(400).json({
         success: false,
         message: "Missing required fields",
@@ -27,78 +32,73 @@ export const createQueue: RequestHandler = async (
       return;
     }
 
-    if (Object.keys(steps).length === 0) {
-      res.status(400).json({
-        success: false,
-        message: "At least one step is required",
-      });
-      return;
-    }
-
-    logger.info("Email queue event received", {
-      email,
-      tag,
-      scheduledFor,
-      stepsCount: Object.keys(steps).length,
-    });
-
-    const jobId = uuidv4();
     const timestamp = new Date().toISOString();
-    const currentStepId = steps.step1.stepId;
-    const job = await EmailQueue.add(
-      "email-job",
-      {
-        queueId: jobId,
-        email,
-        tag,
-        currentStep: 0,
-        currentStepId: currentStepId,
-        steps,
-      },
-      {
+    const createdJobs = [];
+
+    // Create jobs for each tag
+    for (const tag of tags) {
+      const jobId = uuidv4();
+
+      // Create Bull job
+      const job = await EmailQueue.add(
+        "email-job",
+        {
+          queueId: jobId,
+          email,
+          tagName: tag.tagName,
+          tagId: tag.tagId
+        },
+        {
+          jobId,
+          delay: tag.scheduledFor,
+          attempts: 3,
+        }
+      );
+
+      // Prepare queue item for database
+      const queueItem: QueueItem = {
         jobId,
-        delay: scheduledFor,
+        tagId: tag.tagId,
+        tagName: tag.tagName,
+        email,
+        status: "QUEUED",
         attempts: 3,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        scheduledFor: tag.scheduledFor,
+        processedAt: undefined,
+        error: undefined,
+      };
+
+      const result = await queuesQueries.createQueue(queueItem);
+      await tagQueries.updateTagJobCountQuery(tag.tagId, "increment")
+
+
+      if (result.error) {
+        await job.remove();
+        throw new Error(`Failed to create queue for tag ${tag.tagName}: ${result.error}`);
       }
-    );
 
-    const queueItem: QueueItem = {
-      jobId,
-      tag,
-      email,
-      status: "QUEUED",
-      attempts: 3,
-      currentStepId: currentStepId,
-      steps,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      scheduledFor,
-      processedAt: undefined,
-      error: undefined,
-    };
-
-    const result = await queuesQueries.createQueue(queueItem);
-
-    if (result.error) {
-      await job.remove();
-      throw new Error(result.error);
+      createdJobs.push({
+        queueId: jobId,
+        jobId: job.id,
+        tag: tag.tagName
+      });
     }
+    await RevalidateService.revalidateTag()
 
     res.status(201).json({
       success: true,
-      message: "Queue created successfully",
-      data: {
-        queueId: jobId,
-        jobId: job.id,
-        steps: Object.keys(steps).length,
-      },
+      message: `Successfully created ${createdJobs.length} queue jobs`,
+      data: createdJobs,
     });
+
   } catch (error) {
-    logger.error("Failed to create queue", error);
+    logger.error("Failed to create queues", error);
 
     res.status(500).json({
       success: false,
-      message: "Failed to create queue",
+      message: "Failed to create queues",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }

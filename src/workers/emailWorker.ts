@@ -2,7 +2,8 @@ import { Worker, QueueEvents, Job } from "bullmq";
 import { queuesQueries } from "../queries/queuesQueries";
 import logger from "../utils/logger";
 import { EmailQueue } from "../queues/emailQueue";
-import { stepQueries } from "../queries/stepQueries";
+import { tagQueries } from "../queries/tagQueries";
+import { RevalidateService } from "../services/revalidateNext";
 
 interface Step {
   stepId: string;
@@ -13,7 +14,8 @@ interface Step {
 interface EmailJob {
   queueId: string;
   email: string;
-  tag: string;
+  tagId: string;
+  tagName: string;
   currentStep: number;
   currentStepId: string;
   steps: Record<string, Step>;
@@ -22,14 +24,15 @@ interface EmailJob {
 const worker = new Worker<EmailJob>(
   "email-queue",
   async (job) => {
-    const { queueId, email, currentStepId } = job.data;
+    const { queueId, email } = job.data;
     const currentAttempt = job.attemptsMade + 1;
 
     await queuesQueries.updateStatusQuery(queueId, "SENDING");
     logger.info(`Processing attempt ${currentAttempt}/3 for email: ${email}`);
 
     try {
-      // Your email sending logic here
+      logger.success('Completed')
+
     } catch (error) {
       throw error;
     }
@@ -51,68 +54,12 @@ const queueEvents = new QueueEvents("email-queue", {
 });
 
 worker.on("completed", async (job: Job<EmailJob>) => {
-  const { queueId, currentStep, steps } = job.data;
-  console.log("Current job data:", { queueId, currentStep, steps });
+  const { queueId, tagId } = job.data;
+  const updateStatus = queuesQueries.updateStatusQuery(queueId, "SENT")
+  const updateJobCount = tagQueries.updateTagJobCountQuery(tagId, 'decrement')
+  const revalidateTag = RevalidateService.revalidateTag()
+  await Promise.all([updateJobCount, revalidateTag, updateStatus])
 
-  try {
-    const stepKeys = Object.keys(steps);
-    const currentKey = stepKeys[currentStep];
-    console.log("Current step info:", { currentKey, currentStep });
-
-    const updatedSteps = { ...steps };
-    updatedSteps[currentKey] = {
-      ...steps[currentKey],
-      status: "completed",
-      completedAt: new Date().toISOString(),
-    };
-    console.log("Steps after update:", updatedSteps);
-
-    const nextStep = currentStep + 1;
-    const nextKey = stepKeys[nextStep];
-
-    if (nextKey) {
-      console.log("Moving to next step:", { nextStep, nextKey });
-
-      const nextStepConfig = await stepQueries.getStepQuery(
-        steps[nextKey].stepId
-      );
-      console.log("Next step config:", nextStepConfig);
-
-      await EmailQueue.remove(queueId);
-
-      // Create new job
-      await EmailQueue.add(
-        "email-job",
-        {
-          ...job.data,
-          currentStep: nextStep,
-          currentStepId: steps[nextKey].stepId,
-          steps: updatedSteps,
-        },
-        {
-          delay: nextStepConfig?.item?.waitDuration,
-          attempts: 3,
-          jobId: queueId,
-        }
-      );
-
-      await queuesQueries.updateQueue(queueId, {
-        steps: updatedSteps,
-        currentStepId: steps[nextKey].stepId,
-        currentStep: nextStep,
-        status: "QUEUED",
-      });
-    } else {
-      logger.success("All steps completed");
-      await queuesQueries.updateQueue(queueId, {
-        steps: updatedSteps,
-        status: "COMPLETED",
-      });
-    }
-  } catch (error) {
-    console.error("Error in completed handler:", error);
-    throw error;
-  }
 });
 
 worker.on("active", async (job: Job<EmailJob>) => {
@@ -140,9 +87,6 @@ queueEvents.on("added", async ({ jobId }) => {
   const job = await EmailQueue.getJob(jobId);
   if (job) {
     await queuesQueries.updateStatusQuery(job.data.queueId, "QUEUED");
-    logger.info(
-      `Step ${job.data.currentStepId} queued for queue ${job.data.queueId}`
-    );
   }
 });
 

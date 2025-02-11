@@ -3,9 +3,9 @@ import { dynamoDb } from "../../services/dynamoDb";
 import config from "../../config";
 import logger from "../../utils/logger";
 
-export async function getStepQuery(stepId: string) {
+export async function getTagQuery(stepId: string) {
   const command = new GetCommand({
-    TableName: config.aws.queueStepTableName,
+    TableName: config.aws.queueTagTableName,
     Key: {
       stepId: stepId,
     },
