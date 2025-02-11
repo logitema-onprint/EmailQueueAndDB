@@ -4,10 +4,17 @@ export interface QueueItem {
   email: string;
   status: string;
   attempts: number;
-  payload: object;
+  currentStepId: string;
+  steps: {};
   error?: string;
   createdAt: string;
   updatedAt: string;
   scheduledFor: number;
   processedAt?: number;
+}
+
+export interface Step {
+  stepId: string;
+  status: "pending" | "completed";
+  completedAt: string | null;
 }
