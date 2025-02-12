@@ -7,6 +7,8 @@ export const queueRoutes = async (server: Express) => {
   server.post("/api/queue", queueControllers.createQueue);
   server.delete("/api/queue/:jobId", queueControllers.deleteQueue);
   server.get("/api/queue/:jobId", queueControllers.getQueue);
+  server.post("/api/queue/pause/:tagId", queueControllers.pauseQueuesByTag);
+  server.post("/api/queue/resume/:tagId", queueControllers.resumeQueuesByTag);
   server.post("/api/queue/pause/:jobId", queueControllers.pauseQueue);
   server.post("/api/queue/resume/:jobId", queueControllers.resumeQueue);
   server.get(
@@ -17,6 +19,8 @@ export const queueRoutes = async (server: Express) => {
     "/api/queue/sendTime/:jobId",
     queueControllers.updateQueueSendTime
   );
+
+  server.post("/api/queue/batch-delete", queueControllers.deleteManyQueues);
 };
 
 export default router;

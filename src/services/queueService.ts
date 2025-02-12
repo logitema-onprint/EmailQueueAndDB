@@ -19,26 +19,25 @@ export class QueueService {
 
   static async getJobFromQueues(jobId: string) {
     let job = await EmailQueue.getJob(jobId);
-
-    if (!job) {
-      job = await PausedQueue.getJob(jobId);
-      if (!job) {
-        logger.error(`Job services getJobFromQueues ${jobId} not found`);
-        return null;
-      }
-      logger.success(`Job ${jobId} found in PausedQueue`);
-    } else {
+    if (job) {
       logger.success(`Job ${jobId} found in EmailQueue`);
+    } else {
+      job = await PausedQueue.getJob(jobId);
+      if (job) {
+        logger.success(`Job ${jobId} found in PausedQueue`);
+      } else {
+        logger.error(`Job ${jobId} not found in any queue, checking DynamoDB`);
+      }
     }
 
     const item = await queuesQueries.getQuery(jobId);
+
     if (!item) {
-      logger.error(
-        `Job services getJobFromQueues ${jobId} not found in DyanmoDB`
-      );
+      logger.error(`Job ${jobId} not found in DynamoDB`);
       return null;
     }
-    logger.success(`Job ${item?.item?.jobId} found in DynamoDB`);
+
+    logger.success(`Job ${jobId} found in DynamoDB`);
 
     return {
       job,

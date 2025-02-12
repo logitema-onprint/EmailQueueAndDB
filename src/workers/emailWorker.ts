@@ -31,8 +31,7 @@ const worker = new Worker<EmailJob>(
     logger.info(`Processing attempt ${currentAttempt}/3 for email: ${email}`);
 
     try {
-      logger.success('Completed')
-
+      logger.success("Completed");
     } catch (error) {
       throw error;
     }
@@ -55,17 +54,14 @@ const queueEvents = new QueueEvents("email-queue", {
 
 worker.on("completed", async (job: Job<EmailJob>) => {
   const { queueId, tagId } = job.data;
-  const updateStatus = queuesQueries.updateStatusQuery(queueId, "SENT")
-  const updateJobCount = tagQueries.updateTagJobCountQuery(tagId, 'decrement')
-  // const revalidateTag = RevalidateService.revalidateTag()
-  await Promise.all([updateJobCount, updateStatus])
-
+  const updateStatus = queuesQueries.updateStatusQuery(queueId, "SENT");
+  const updateJobCount = tagQueries.updateTagJobCountQuery(tagId, "decrement");
+  const revalidateTag = RevalidateService.revalidateTag();
+  await Promise.all([updateJobCount, revalidateTag, updateStatus]);
 });
 
 worker.on("active", async (job: Job<EmailJob>) => {
-  logger.info(
-    `Processing step ${job.data.currentStepId} for queue ${job.data.queueId}`
-  );
+  logger.info(`Processing job: ${job.data.queueId}`);
 });
 
 worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
