@@ -23,8 +23,8 @@ export const createQueue: RequestHandler = async (
 ) => {
   try {
     const { email, tags } = req.body;
+  
 
-    logger.info(req.body);
     if (!email || !tags || tags.length === 0) {
       res.status(400).json({
         success: false,
@@ -36,16 +36,12 @@ export const createQueue: RequestHandler = async (
     const timestamp = new Date().toISOString();
     const createdJobs = [];
 
-    // Create jobs for each tag
     for (const tag of tags) {
       const jobId = uuidv4();
-
-      // Create Bull job
       const job = await EmailQueue.add(
         "email-job",
         {
           queueId: jobId,
-          email,
           tagName: tag.tagName,
           tagId: tag.tagId,
         },

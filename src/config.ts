@@ -10,7 +10,8 @@ const requiredEnvVars = {
   SECRET_ACCESS_KEY: process.env.SECRET_ACCESS_KEY,
   REGION: process.env.REGION,
   QUEUE_TABLE_NAME: process.env.QUEUE_TABLE_NAME,
-  QUEUE_TAG_TABLE: process.env.QUEUE_TAG_TABLE
+  QUEUE_TAG_TABLE: process.env.QUEUE_TAG_TABLE,
+  ORDER_TABLE_NAME: process.env.ORDER_TABLE_NAME
 } as const;
 
 const missingVars = Object.entries(requiredEnvVars)
@@ -39,6 +40,7 @@ const config = {
   aws: {
     queueTableName: process.env.QUEUE_TABLE_NAME!,
     queueTagTableName: process.env.QUEUE_TAG_TABLE!,
+    orderTableName: process.env.ORDER_TABLE_NAME!,
     access: process.env.ACCESS_KEY!,
     secret: process.env.SECRET_ACCESS_KEY!,
     region: process.env.REGION!,

@@ -4,9 +4,9 @@ import "../workers/emailWorker";
 
 interface EmailJob {
   queueId: string;
-  email: string;
   tagId: string;
   tagName: string
+  email?: string;
 }
 
 export const EmailQueue = new Queue<EmailJob>("email-queue", {
