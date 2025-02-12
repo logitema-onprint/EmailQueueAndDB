@@ -12,7 +12,7 @@ export const getQueue: RequestHandler = async (req: Request, res: Response) => {
       });
     }
     const result = await QueueService.getJobFromQueues(jobId);
-    const state = await result?.job.getState();
+    const state = await result?.job?.getState();
     logger.info("Jobstate: ", state);
 
     if (!result) {

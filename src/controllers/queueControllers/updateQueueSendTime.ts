@@ -24,7 +24,7 @@ export const updateQueueSendTime: RequestHandler = async (
       return;
     }
 
-    await job.job.changeDelay(sendTime);
+    await job?.job?.changeDelay(sendTime);
 
     res.status(200).json({
       success: true,
