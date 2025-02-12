@@ -57,8 +57,8 @@ worker.on("completed", async (job: Job<EmailJob>) => {
   const { queueId, tagId } = job.data;
   const updateStatus = queuesQueries.updateStatusQuery(queueId, "SENT")
   const updateJobCount = tagQueries.updateTagJobCountQuery(tagId, 'decrement')
-  const revalidateTag = RevalidateService.revalidateTag()
-  await Promise.all([updateJobCount, revalidateTag, updateStatus])
+  // const revalidateTag = RevalidateService.revalidateTag()
+  await Promise.all([updateJobCount, updateStatus])
 
 });
 
