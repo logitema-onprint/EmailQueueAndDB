@@ -1,32 +1,24 @@
-import { DeleteCommand } from "@aws-sdk/lib-dynamodb";
-import config from "../../config";
-import { dynamoDb } from "../../services/dynamoDb";
+import { queuesQueries } from ".";
+import prisma from "../../services/prisma";
+import logger from "../../utils/logger";
 
 export async function deleteQueue(jobId: string) {
-  const command = new DeleteCommand({
-    TableName: config.aws.queueTableName,
-    Key: {
-      jobId: jobId,
-    },
-    ConditionExpression: "attribute_exists(jobId)",
-  });
-
   try {
-    await dynamoDb.send(command);
+
+    await prisma.job.delete({
+      where: { id: jobId }
+    });
+
     return {
       success: true,
-      message: "Eilė buvo sekimingai ištrinta",
+      message: "Eilė buvo sėkmingai ištrinta"
     };
   } catch (error: any) {
-    if (error.name === "ConditionalCheckFailedException") {
-      return {
-        success: false,
-        error: "Eilė su tokiu Id nerasta",
-      };
-    }
+
+
     return {
       success: false,
-      error: `Nepavyko ištrinti eilės: ${error}`,
+      error: `Nepavyko ištrinti eilės: ${error}`
     };
   }
 }

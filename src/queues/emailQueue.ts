@@ -3,7 +3,7 @@ import "../workers/emailWorker";
 
 
 interface EmailJob {
-  queueId: string;
+  jobId: string;
   tagId: string;
   tagName: string
   email?: string;

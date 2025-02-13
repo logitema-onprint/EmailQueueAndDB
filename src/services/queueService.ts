@@ -36,8 +36,7 @@ export class QueueService {
       logger.error(`Job ${jobId} not found in DynamoDB`);
       return null;
     }
-
-    logger.success(`Job ${jobId} found in DynamoDB`);
+    logger.success(`Job ${item.item?.id} found in DynamoDB`);
 
     return {
       job,

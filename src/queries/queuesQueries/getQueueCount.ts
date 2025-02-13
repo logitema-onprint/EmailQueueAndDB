@@ -1,29 +1,17 @@
-import { QueryCommand } from "@aws-sdk/client-dynamodb";
-import config from "../../config";
-import { dynamoDb } from "../../services/dynamoDb";
+import prisma from "../../services/prisma";
 import logger from "../../utils/logger";
 
-
 export async function getQueueCount(status: string) {
-  const command = new QueryCommand({
-    TableName: config.aws.queueTableName,
-    IndexName: "status-index",
-    KeyConditionExpression: "#status = :status",
-    ExpressionAttributeNames: {
-      "#status": "status",
-    },
-    ExpressionAttributeValues: {
-      ":status": { S: status },
-    },
-    Select: "COUNT",
-  });
-
   try {
-    const result = await dynamoDb.send(command);
+    const count = await prisma.job.count({
+      where: { status }
+    });
+
     logger.info(
-      `Successfully got queue count for status: ${status} count: ${result.Count}`
+      `Successfully got queue count for status: ${status} count: ${count}`
     );
-    return result.Count || 0;
+
+    return count;
   } catch (error) {
     logger.error("Failed to get queue count", error);
     throw error;

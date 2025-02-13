@@ -1,5 +1,5 @@
 import { RequestHandler, Request, Response } from "express";
-import { BullMQServices } from "../../services/bullmqService";
+// import { BullMQServices } from "../../services/bullmqService";
 import { tagQueries } from "../../queries/tagQueries";
 import { v4 as uuidv4 } from "uuid";
 import { Order } from "../../types/orderApi";
