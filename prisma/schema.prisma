@@ -1,0 +1,86 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id             Int        @id @default(autoincrement())
+  phoneNumber    String
+  userName       String
+  userSurname    String? // Optional
+  companyName    String? // Optional
+  paymentDetails String
+  subTotal       Float
+  salesAgentId   String
+  country        String
+  city           String
+  customerId     String
+  productName    String
+  productId      String
+  orderTags      OrderTag[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([salesAgentId])
+  @@index([country])
+  @@index([subTotal])
+}
+
+model OrderTag {
+  id          Int       @id @default(autoincrement())
+  orderId     Int
+  tagId       Int
+  status      String
+  completedAt DateTime?
+  order       Order     @relation(fields: [orderId], references: [id])
+
+  @@index([tagId])
+  @@index([orderId])
+}
+
+model Rule {
+  id        Int      @id @default(autoincrement())
+  productId String
+  tags      Int[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model Tag {
+  id           Int      @id @default(autoincrement())
+  tagName      String
+  scheduledFor Boolean
+  templateName String
+  message      String
+  jobsCount    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tagName])
+}
+
+model Job {
+  id           String    @id
+  orderId      String
+  tagId        String // No @relation, just a regular field
+  tagName      String // Added this field
+  status       String
+  scheduledFor Int
+  attempts     Int       @default(0)
+  error        String?
+  processedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([orderId])
+  @@index([tagId])
+  @@index([status])
+}

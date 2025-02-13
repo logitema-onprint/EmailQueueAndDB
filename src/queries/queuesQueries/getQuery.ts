@@ -1,25 +1,19 @@
-import { GetCommand } from "@aws-sdk/lib-dynamodb";
-import { dynamoDb } from "../../services/dynamoDb";
-import config from "../../config";
+import prisma from "../../services/prisma";
 
 export async function getQuery(jobId: string) {
-  const command = new GetCommand({
-    TableName: config.aws.queueTableName,
-    Key: {
-      jobId: jobId,
-    },
-  });
-
   try {
-    const response = await dynamoDb.send(command);
+    const job = await prisma.job.findUnique({
+      where: { id: jobId }
+    });
+
     return {
       success: true,
-      item: response.Item,
+      item: job
     };
   } catch (error) {
     return {
       success: false,
-      error: `Failed to get queue item: ${error}`,
+      error: `Failed to get job: ${error}`
     };
   }
 }

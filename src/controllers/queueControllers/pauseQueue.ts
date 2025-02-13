@@ -47,7 +47,7 @@ export const pauseQueue: RequestHandler = async (
       { jobId: jobId }
     );
     await job.remove();
-    await queuesQueries.updateStatusQuery(jobId, "PAUSED");
+    await queuesQueries.updateStatusQuery(jobId, { status: "PAUSED" });
 
     logger.info(`Job ${jobId} paused`);
 

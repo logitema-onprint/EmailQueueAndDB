@@ -6,25 +6,20 @@ import { queuesQueries } from "../../queries/queuesQueries";
 import { QueueItem } from "../../types/queueApi";
 import { tagQueries } from "../../queries/tagQueries";
 import { RevalidateService } from "../../services/revalidateNext";
+import { JobItem } from "../../queries/queuesQueries/createQuery";
 
-interface CreateQueueRequest {
-  email: string;
-  tags: Array<{
-    tagId: string;
-    tagName: string;
-    scheduledFor: number;
-  }>;
-}
+
 
 export const createQueue: RequestHandler = async (
-  req: Request<{}, {}, CreateQueueRequest>,
+  req: Request,
   res: Response
 ) => {
   try {
-    const { email, tags } = req.body;
-  
+    const { tags, orderId } = req.body;
+    logger.info(req.body)
 
-    if (!email || !tags || tags.length === 0) {
+
+    if (!orderId || !tags || tags.length === 0) {
       res.status(400).json({
         success: false,
         message: "Missing required fields",
@@ -40,34 +35,32 @@ export const createQueue: RequestHandler = async (
       const job = await EmailQueue.add(
         "email-job",
         {
-          queueId: jobId,
+          jobId: jobId,
           tagName: tag.tagName,
           tagId: tag.tagId
         },
         {
-          jobId,
+          jobId: jobId,
           delay: tag.scheduledFor,
           attempts: 3,
         }
       );
 
       // Prepare queue item for database
-      const queueItem: QueueItem = {
+      const queueItem: JobItem = {
+        orderId: orderId,
         jobId,
         tagId: tag.tagId,
         tagName: tag.tagName,
-        email,
         status: "QUEUED",
-        attempts: 3,
-        createdAt: timestamp,
         updatedAt: timestamp,
         scheduledFor: tag.scheduledFor,
         processedAt: undefined,
-        error: undefined,
+        error: null,
       };
 
       const result = await queuesQueries.createQueue(queueItem);
-      await tagQueries.updateTagJobCountQuery(tag.tagId, "increment")
+      // await tagQueries.updateTagJobCountQuery(tag.tagId, "increment")
 
 
       if (result.error) {
@@ -81,7 +74,7 @@ export const createQueue: RequestHandler = async (
         tag: tag.tagName
       });
     }
-    await RevalidateService.revalidateTag()
+    // await RevalidateService.revalidateTag()
 
     res.status(201).json({
       success: true,

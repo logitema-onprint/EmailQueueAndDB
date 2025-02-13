@@ -1,5 +1,5 @@
 import { RequestHandler, Request, Response } from "express";
-import { BullMQServices } from "../../services/bullmqService";
+// import { BullMQServices } from "../../services/bullmqService";
 import { tagQueries } from "../../queries/tagQueries";
 import { v4 as uuidv4 } from "uuid";
 import { Order } from "../../types/orderApi";
@@ -69,9 +69,9 @@ export const createOrder: RequestHandler = async (req: Request, res: Response) =
             city: orderData.city,
             tags: tags
         }
-        const [result, jobs] = await Promise.all([
+        const [result] = await Promise.all([
             orderQueries.create(order),
-            BullMQServices.createJobs("eduardas2000@mail.ru", tags)
+            // BullMQServices.createJobs("eduardas2000@mail.ru", tags)
         ])
 
 
