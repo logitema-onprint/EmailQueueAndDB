@@ -8,16 +8,12 @@ import { tagQueries } from "../../queries/tagQueries";
 import { RevalidateService } from "../../services/revalidateNext";
 import { JobItem } from "../../queries/queuesQueries/createQuery";
 
-
-
 export const createQueue: RequestHandler = async (
   req: Request,
   res: Response
 ) => {
   try {
-    const { tags, orderId } = req.body;
-    logger.info(req.body)
-
+    const { orderId, tags } = req.body;
 
     if (!orderId || !tags || tags.length === 0) {
       res.status(400).json({
@@ -60,8 +56,7 @@ export const createQueue: RequestHandler = async (
       };
 
       const result = await queuesQueries.createQueue(queueItem);
-      await tagQueries.updateTagJobCountQuery(tag.tagId, "increment")
-
+      // await tagQueries.updateTagJobCountQuery(tag.tagId, "increment");
 
       if (result.error) {
         await job.remove();
@@ -76,7 +71,9 @@ export const createQueue: RequestHandler = async (
         tag: tag.tagName,
       });
     }
-    await RevalidateService.revalidateTag()
+    // await RevalidateService.revalidateTag();
+
+    await queuesQueries.getQueueCount("SENT");
 
     res.status(201).json({
       success: true,

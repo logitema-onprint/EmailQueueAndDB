@@ -1,10 +1,12 @@
 import prisma from "../../services/prisma";
 import logger from "../../utils/logger";
 
-export async function getQueueCount(status: string) {
+type Status = "SENT" | "FAILED" | "PENDING" | "QUEUED" | "PAUSED";
+
+export async function getQueueCount(status: Status) {
   try {
     const count = await prisma.job.count({
-      where: { status }
+      where: { status },
     });
 
     logger.info(

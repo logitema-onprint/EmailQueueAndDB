@@ -76,9 +76,9 @@ export const createOrder: RequestHandler = async (
       city: orderData.city,
       tags: tags,
     };
-    const [result, jobs] = await Promise.all([
+    const [result] = await Promise.all([
       orderQueries.create(order),
-      BullMQServices.createJobs("eduardas2000@mail.ru", tags),
+      // BullMQServices.createJobs("eduardas2000@mail.ru", tags),
     ]);
 
     if (!result.success) {

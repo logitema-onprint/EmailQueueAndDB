@@ -26,17 +26,17 @@ export class QueueService {
       if (job) {
         logger.success(`Job ${jobId} found in PausedQueue`);
       } else {
-        logger.error(`Job ${jobId} not found in any queue, checking DynamoDB`);
+        logger.error(`Job ${jobId} not found in any queue, checking DB`);
       }
     }
 
     const item = await queuesQueries.getQuery(jobId);
 
     if (!item) {
-      logger.error(`Job ${jobId} not found in DynamoDB`);
+      logger.error(`Job ${jobId} not found in DB`);
       return null;
     }
-    logger.success(`Job ${item.item?.id} found in DynamoDB`);
+    logger.success(`Job ${item.item?.id} found in DB`);
 
     return {
       job,

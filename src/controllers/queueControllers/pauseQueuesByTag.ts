@@ -4,37 +4,32 @@ import logger from "../../utils/logger";
 import { EmailQueue } from "../../queues/emailQueue";
 import { PausedQueue } from "../../queues/pausedQueue";
 import { QueueService } from "../../services/queueService";
+import { Job } from "@prisma/client";
 
 export const pauseQueuesByTag: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { tagId } = req.params;
-    logger.info(tagId);
+    const { tags } = req.body;
+    logger.info(tags);
 
-    if (!tagId) {
+    if (!tags) {
       res.status(400).json({
         success: false,
         message: "Missing tagId",
       });
       return;
     }
-    const allQueues = [];
-    let lastEvaluatedKey;
 
-    do {
-      const result = await queuesQueries.getByStatusAndTag(
-        tagId,
-        "QUEUED",
-        100,
-        lastEvaluatedKey
-      );
-      allQueues.push(...(result.items || []));
-      lastEvaluatedKey = result.lastEvaluatedKey;
-    } while (lastEvaluatedKey);
+    const queryParams = {
+      status: "QUEUED",
+      tagIds: tags,
+      includeTotalCount: true,
+    };
 
-    if (allQueues.length === 0) {
+    const { jobs } = await queuesQueries.getAllQuery(queryParams);
+    if (jobs.length === 0) {
       res.status(404).json({
         success: false,
         message: "No active jobs found for this tag",
@@ -43,13 +38,12 @@ export const pauseQueuesByTag: RequestHandler = async (
     }
 
     const results = await Promise.all(
-      allQueues.map(async (queueItem) => {
+      jobs.map(async (queueItem: Job) => {
         try {
-          const job = await EmailQueue.getJob(queueItem.jobId);
-
+          const job = await EmailQueue.getJob(queueItem.id);
           if (!job) {
             return {
-              jobId: queueItem.jobId,
+              jobId: queueItem.id,
               success: false,
               error: "Job not found in EmailQueue",
             };
@@ -58,32 +52,34 @@ export const pauseQueuesByTag: RequestHandler = async (
           const jobState = await job.getState();
           if (jobState !== "delayed") {
             return {
-              jobId: queueItem.jobId,
+              jobId: queueItem.id,
               success: false,
               error: "Job is not in delayed state",
             };
           }
 
-          const timeLeft = await QueueService.getTimeLeft(queueItem.jobId);
+          const timeLeft = await QueueService.getTimeLeft(queueItem.id);
 
           await PausedQueue.add(
             "paused-job",
             { ...job.data, timeLeft, attempts: 3 },
-            { jobId: queueItem.jobId }
+            { jobId: queueItem.id }
           );
 
           await job.remove();
 
-          await queuesQueries.updateStatusQuery(queueItem.jobId, "PAUSED");
+          await queuesQueries.updateStatusQuery(job.data.jobId, {
+            status: "PAUSED",
+          });
 
           return {
-            jobId: queueItem.jobId,
+            jobId: queueItem.id,
             success: true,
           };
         } catch (error) {
-          logger.error(`Failed to pause job ${queueItem.jobId}:`, error);
+          logger.error(`Failed to pause job ${queueItem.id}:`, error);
           return {
-            jobId: queueItem.jobId,
+            jobId: queueItem.id,
             success: false,
             error: error instanceof Error ? error.message : "Unknown error",
           };
@@ -97,7 +93,6 @@ export const pauseQueuesByTag: RequestHandler = async (
     res.status(200).json({
       success: true,
       message: `Successfully paused ${successCount} jobs, ${failureCount} failed`,
-      results,
     });
   } catch (error) {
     logger.error("Failed to pause jobs by tag", error);

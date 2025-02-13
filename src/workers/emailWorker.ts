@@ -5,16 +5,12 @@ import { EmailQueue } from "../queues/emailQueue";
 import { tagQueries } from "../queries/tagQueries";
 import { RevalidateService } from "../services/revalidateNext";
 import { log } from "console";
-
-
+import { QueueService } from "../services/queueService";
 
 interface EmailJob {
   jobId: string;
-
   tagId: string;
   tagName: string;
-
-
 }
 
 const worker = new Worker<EmailJob>(
@@ -22,13 +18,23 @@ const worker = new Worker<EmailJob>(
   async (job) => {
     const { jobId, tagId, tagName } = job.data;
     const currentAttempt = job.attemptsMade + 1;
+    const jobAttempt = await QueueService.getJobFromQueues(jobId);
 
-    await queuesQueries.updateStatusQuery(jobId, { status: 'SENDING', processed: true });
+    await queuesQueries.updateStatusQuery(jobId, {
+      status: "SENDING",
+      processed: true,
+      incrementAttempts: true,
+    });
     logger.info(`Processing attempt ${currentAttempt}/3 for tag: ${tagName}`);
 
     try {
-      logger.success('Completed')
-      await queuesQueries.updateStatusQuery(jobId, { status: 'SENT'});
+      const shouldFail = Math.random() < 0.5;
+
+      if (shouldFail) {
+        throw new Error(`Artificial failure for tag: ${tagName}`);
+      }
+      logger.success("Completed");
+      await queuesQueries.updateStatusQuery(jobId, { status: "SENT" });
     } catch (error) {
       throw error;
     }
@@ -42,27 +48,17 @@ const worker = new Worker<EmailJob>(
   }
 );
 
-const queueEvents = new QueueEvents("email-queue", {
-  connection: {
-    host: "redis",
-    port: 6379,
-  },
-});
-
 worker.on("completed", async (job: Job<EmailJob>) => {
-  const { queueId, tagId } = job.data;
-  const updateStatus = queuesQueries.updateStatusQuery(queueId, "SENT")
-  const updateJobCount = tagQueries.updateTagJobCountQuery(tagId, 'decrement')
+  const { jobId, tagId } = job.data;
+  const updateStatus = queuesQueries.updateStatusQuery(jobId, {
+    status: "SENT",
+  });
+  // const updateJobCount = tagQueries.updateTagJobCountQuery(tagId, "decrement");
   // const revalidateTag = RevalidateService.revalidateTag()
-  await Promise.all([updateJobCount, updateStatus])
-
+  await Promise.all([updateStatus]);
 });
 
-worker.on("active", async (job: Job<EmailJob>) => {
-  logger.info(
-    `Processing step ${job.data.currentStepId} for queue ${job.data.queueId}`
-  );
-});
+worker.on("active", async (job: Job<EmailJob>) => {});
 
 worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
   if (!job) {
@@ -73,17 +69,10 @@ worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
   const attempt = job.attemptsMade;
   const maxAttempts = job.opts?.attempts || 3;
 
-  // await queuesQueries.updateStatusQuery(job.data.queueId, "FAILED");
+  await queuesQueries.updateStatusQuery(job.data.jobId, { status: "FAILED" });
   logger.error(
     `Step ${job.data.tagName} failed for queue ${job.data.tagName} (Attempt ${attempt}/${maxAttempts})`
   );
-});
-
-queueEvents.on("added", async ({ jobId }) => {
-  const job = await EmailQueue.getJob(jobId);
-  // if (job) {
-  //   await queuesQueries.updateStatusQuery(job.data.queueId, "QUEUED");
-  // }
 });
 
 export default worker;

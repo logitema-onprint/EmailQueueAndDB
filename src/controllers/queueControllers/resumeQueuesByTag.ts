@@ -4,37 +4,32 @@ import logger from "../../utils/logger";
 import { EmailQueue } from "../../queues/emailQueue";
 import { PausedQueue } from "../../queues/pausedQueue";
 import { QueueService } from "../../services/queueService";
+import { Job } from "@prisma/client";
 
 export const resumeQueuesByTag: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { tagId } = req.params;
-    logger.info(tagId);
+    const { tags } = req.body;
+    logger.info(tags);
 
-    if (!tagId) {
+    if (!tags) {
       res.status(400).json({
         success: false,
         message: "Missing tagId",
       });
       return;
     }
-    const allQueues = [];
-    let lastEvaluatedKey;
 
-    do {
-      const result = await queuesQueries.getByStatusAndTag(
-        tagId,
-        "PAUSED",
-        100,
-        lastEvaluatedKey
-      );
-      allQueues.push(...(result.items || []));
-      lastEvaluatedKey = result.lastEvaluatedKey;
-    } while (lastEvaluatedKey);
+    const queryParams = {
+      status: "PAUSED",
+      tagIds: tags,
+    };
 
-    if (allQueues.length === 0) {
+    const { jobs } = await queuesQueries.getAllQuery(queryParams);
+
+    if (jobs.length === 0) {
       res.status(404).json({
         success: false,
         message: "No active jobs found for this tag",
@@ -43,13 +38,13 @@ export const resumeQueuesByTag: RequestHandler = async (
     }
 
     const results = await Promise.all(
-      allQueues.map(async (queueItem) => {
+      jobs.map(async (queueItem: Job) => {
         try {
-          const pausedJob = await PausedQueue.getJob(queueItem.jobId);
+          const pausedJob = await PausedQueue.getJob(queueItem.id);
 
           if (!pausedJob) {
             return {
-              jobId: queueItem.jobId,
+              jobId: queueItem.id,
               success: false,
               error: "Job not found in EmailQueue",
             };
@@ -58,7 +53,7 @@ export const resumeQueuesByTag: RequestHandler = async (
           const jobState = await pausedJob.getState();
           if (jobState !== "waiting") {
             return {
-              jobId: queueItem.jobId,
+              jobId: queueItem.id,
               success: false,
               error: "Job is not in waiting state",
             };
@@ -68,7 +63,7 @@ export const resumeQueuesByTag: RequestHandler = async (
             "email-job",
             { ...pausedJob.data },
             {
-              jobId: queueItem.jobId,
+              jobId: queueItem.id,
               delay: pausedJob.data.timeLeft,
               attempts: pausedJob.data.attempts,
             }
@@ -76,16 +71,18 @@ export const resumeQueuesByTag: RequestHandler = async (
 
           await pausedJob.remove();
 
-          await queuesQueries.updateStatusQuery(queueItem.jobId, "QUEUED");
+          await queuesQueries.updateStatusQuery(queueItem.id, {
+            status: "PAUSED",
+          });
 
           return {
-            jobId: queueItem.jobId,
+            jobId: queueItem.id,
             success: true,
           };
         } catch (error) {
-          logger.error(`Failed to resume job ${queueItem.jobId}:`, error);
+          logger.error(`Failed to resume job ${queueItem.id}:`, error);
           return {
-            jobId: queueItem.jobId,
+            jobId: queueItem.id,
             success: false,
             error: error instanceof Error ? error.message : "Unknown error",
           };
@@ -99,7 +96,6 @@ export const resumeQueuesByTag: RequestHandler = async (
     res.status(200).json({
       success: true,
       message: `Successfully resumed ${successCount} jobs, ${failureCount} failed`,
-      results,
     });
   } catch (error) {
     logger.error("Failed to resume jobs by tag", error);

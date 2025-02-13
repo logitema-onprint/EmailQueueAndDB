@@ -8,7 +8,7 @@ import { updateQueue } from "./updateQuery";
 import { updateSendTimeQuery } from "./updateSendTimeQuery";
 import { updateStatusQuery } from "./updateStatusQuery";
 import { getQueuesByTag } from "./getQueuesBytTag";
-import { getByStatusAndTag } from "./getByStatusAndTag";
+import { getAllQuery } from "./getAllQuery";
 
 export const queuesQueries = {
   createQueue,
@@ -21,5 +21,5 @@ export const queuesQueries = {
   updateQueue,
   deleteManyQuery,
   getQueuesByTag,
-  getByStatusAndTag,
+  getAllQuery,
 };

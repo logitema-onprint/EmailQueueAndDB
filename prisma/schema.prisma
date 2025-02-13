@@ -70,8 +70,8 @@ model Tag {
 model Job {
   id           String    @id
   orderId      String
-  tagId        String // No @relation, just a regular field
-  tagName      String // Added this field
+  tagId        String 
+  tagName      String 
   status       String
   scheduledFor Int
   attempts     Int       @default(0)
@@ -83,4 +83,5 @@ model Job {
   @@index([orderId])
   @@index([tagId])
   @@index([status])
+  @@index([tagId, status, createdAt])
 }
