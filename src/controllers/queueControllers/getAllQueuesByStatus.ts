@@ -13,7 +13,7 @@ export const getAllQueuesByStatus: RequestHandler = async (
   try {
     const { status } = req.params;
     const page = parseInt(req.query.page as string) || 1;
-    const itemsPerPage = 20;
+    const itemsPerPage = 25;
     const lastEvaluatedKey = req.query.lastEvaluatedKey
       ? JSON.parse(req.query.lastEvaluatedKey as string)
       : undefined;

@@ -2,6 +2,7 @@ import { Request, RequestHandler, Response } from "express";
 import logger from "../../utils/logger";
 import { queuesQueries } from "../../queries/queuesQueries";
 import { QueueService } from "../../services/queueService";
+import { RevalidateService } from "../../services/revalidateNext";
 
 export const deleteQueue: RequestHandler = async (
   req: Request,
@@ -21,15 +22,15 @@ export const deleteQueue: RequestHandler = async (
     const queueItem = await QueueService.getJobFromQueues(jobId);
 
     if (!queueItem) {
+      await RevalidateService.revalidateQueue();
       res.status(404).json({
         success: false,
         message: `Job ${jobId} not found in any queue`,
       });
-      return;
     }
 
     const deleteBullQueue = queueItem
-      ? queueItem.job.remove()
+      ? queueItem?.job?.remove()
       : Promise.resolve();
     const deleteDynamoDB = queuesQueries.deleteQueue(jobId);
 

@@ -50,20 +50,17 @@ const queueEvents = new QueueEvents("email-queue", {
 });
 
 worker.on("completed", async (job: Job<EmailJob>) => {
-  const { jobId, tagId, tagName } = job.data;
-  logger.success('Donzo:', tagName)
-  queuesQueries.getQueueCount("SENT")
-  // const updateStatus = queuesQueries.updateStatusQuery(queueId, "SENT")
-  // const updateJobCount = tagQueries.updateTagJobCountQuery(tagId, 'decrement')
+  const { queueId, tagId } = job.data;
+  const updateStatus = queuesQueries.updateStatusQuery(queueId, "SENT")
+  const updateJobCount = tagQueries.updateTagJobCountQuery(tagId, 'decrement')
   // const revalidateTag = RevalidateService.revalidateTag()
-  // await Promise.all([updateJobCount, updateStatus])
+  await Promise.all([updateJobCount, updateStatus])
 
 });
 
 worker.on("active", async (job: Job<EmailJob>) => {
-
   logger.info(
-    `Processing tag ${job.data.tagName} for queue ${job.data.jobId}`
+    `Processing step ${job.data.currentStepId} for queue ${job.data.queueId}`
   );
 });
 
