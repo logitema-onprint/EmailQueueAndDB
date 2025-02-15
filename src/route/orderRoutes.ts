@@ -1,12 +1,12 @@
-import { Router, Express } from "express";
-import orderController from "../controllers/orderControllers";
+// import { Router, Express } from "express";
+// import orderController from "../controllers/orderControllers";
 
 
-const router = Router();
+// const router = Router();
 
-export const orderRoutes = async (server: Express) => {
-    server.post('/api/order', orderController.createOrder)
-    server.post('/api/order/status-tag', orderController.getOrderByStatusTagId)
-};
+// export const orderRoutes = async (server: Express) => {
+//     server.post('/api/order', orderController.createOrder)
+//     server.post('/api/order/status-tag', orderController.getOrderByStatusTagId)
+// };
 
-export default router;
+// export default router;

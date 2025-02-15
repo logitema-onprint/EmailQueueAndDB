@@ -1,7 +1,15 @@
-import { getTagQuery } from "./getTagQuery";
-import { updateTagJobCountQuery } from "./updateTagJobCountQuery";
+import { create } from "./createQuery";
+import { deleteTag } from "./deleteQuery";
+import { getAllTags } from "./getManyQuery";
+import { getTag } from "./getQuery";
+import { updateTag } from "./updateQuery";
+import { updateTagStatus } from "./updateStatusQuery";
 
 export const tagQueries = {
-  getTagQuery,
-  updateTagJobCountQuery
+  create,
+  deleteTag,
+  getAllTags,
+  getTag,
+  updateTag,
+  updateTagStatus,
 };

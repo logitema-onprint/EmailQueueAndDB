@@ -4,6 +4,7 @@ import logger from "../../utils/logger";
 
 export const getQueue: RequestHandler = async (req: Request, res: Response) => {
   try {
+    console.log('Fires')
     const { jobId } = req.params;
     if (!jobId) {
       res.status(404).json({

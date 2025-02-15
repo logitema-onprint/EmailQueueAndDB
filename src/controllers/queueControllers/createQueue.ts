@@ -7,6 +7,7 @@ import { QueueItem } from "../../types/queueApi";
 import { tagQueries } from "../../queries/tagQueries";
 import { RevalidateService } from "../../services/revalidateNext";
 import { JobItem } from "../../queries/queuesQueries/createQuery";
+import { log } from "console";
 
 export const createQueue: RequestHandler = async (
   req: Request,

@@ -1,10 +1,10 @@
 import { Express } from "express";
 import { queueRoutes } from "./queueRoutes";
-import { orderRoutes } from "./orderRoutes";
+import { tagRoutes } from "./tagRoutes";
 
 const routes = (server: Express) => {
   queueRoutes(server);
-  orderRoutes(server)
+  tagRoutes(server);
 };
 
 export default routes;

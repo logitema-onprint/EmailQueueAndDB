@@ -5,43 +5,58 @@ import { queuesQueries } from "../../queries/queuesQueries";
 import { PausedQueue } from "../../queues/pausedQueue";
 import logger from "../../utils/logger";
 import { bullToDbStatus } from "../../helpers/bullToDbStatus";
+import { log } from "console";
 
-export const getAllQueuesByStatus: RequestHandler = async (
+export const getAllQueues: RequestHandler = async (
   req: Request,
   res: Response
 ) => {
   try {
-    const { status, tagIds } = req.body;
+    const statuses = req.query.status
+      ? (req.query.status as string).split(",")
+      : [];
+    const tagIds = req.query.tagIds
+      ? (req.query.tagIds as string).split(",").map(Number)
+      : [];
     const page = parseInt(req.query.page as string) || 1;
     const itemsPerPage = 25;
 
+    logger.info("Params:", tagIds, statuses);
+
+    if (page < 1) {
+      res.status(400).json({
+        success: false,
+        message: "Page number must be greater than 0",
+      });
+    }
+
     const validStatus = [
+      "active",
       "completed",
       "failed",
       "delayed",
       "waiting",
       "paused",
-      "active",
     ] as const;
 
-    if (status && !validStatus.includes(status as JobStatus)) {
+    if (
+      statuses.length &&
+      !statuses.every((status) => validStatus.includes(status as JobStatus))
+    ) {
       res.status(400).json({
         success: false,
         message: `Invalid status. Must be one of: ${validStatus.join(",")}`,
       });
     }
 
-    if (tagIds) {
-      const bullJobs = await EmailQueue.getJobs([tagIds]);
-
-      logger.info(bullJobs);
-    }
-
-    const dbStatus = bullToDbStatus(status as JobStatus);
+    // Convert all statuses to DB statuses
+    const dbStatuses = statuses.map((status) =>
+      bullToDbStatus(status as JobStatus)
+    );
 
     const queryParams = {
-      ...(dbStatus && { status: dbStatus }),
-      ...(tagIds && { tagIds }),
+      ...(dbStatuses.length > 0 && { status: dbStatuses }),
+      ...(tagIds.length > 0 && { tagIds }),
       page,
       limit: itemsPerPage,
       includeTotalCount: true,

@@ -4,8 +4,8 @@ import logger from '../../utils/logger';
 
 export interface JobItem {
   jobId: string
-  orderId: string;
-  tagId: string;
+  orderId: number;
+  tagId: number;
   tagName: string;
   status: string;
   scheduledFor: number;

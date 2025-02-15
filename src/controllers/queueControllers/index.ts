@@ -3,7 +3,7 @@ import { createQueue } from "./createQueue";
 import { getQueue } from "./getQueue";
 import { pauseQueue } from "./pauseQueue";
 import { resumeQueue } from "./resumeQueue";
-import { getAllQueuesByStatus } from "./getAllQueuesByStatus";
+import { getAllQueues } from "./getAllQueues";
 import { updateQueueSendTime } from "./updateQueueSendTime";
 import { deleteManyQueues } from "./deleteManyQueues";
 import { pauseQueuesByTag } from "./pauseQueuesByTag";
@@ -15,7 +15,7 @@ const queueControllers = {
   getQueue,
   pauseQueue,
   resumeQueue,
-  getAllQueuesByStatus,
+  getAllQueues,
   updateQueueSendTime,
   deleteManyQueues,
   pauseQueuesByTag,

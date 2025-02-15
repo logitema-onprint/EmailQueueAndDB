@@ -46,6 +46,7 @@ model OrderTag {
 model Rule {
   id        Int      @id @default(autoincrement())
   productId String
+  ruleName      String
   tags      Int[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -54,11 +55,9 @@ model Rule {
 }
 
 model Tag {
-  id           Int      @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   tagName      String
-  scheduledFor Boolean
-  templateName String
-  message      String
+  scheduledFor Int
   jobsCount    Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -69,19 +68,20 @@ model Tag {
 
 model Job {
   id           String    @id
-  orderId      String
-  tagId        String 
-  tagName      String 
-  status       String
-  scheduledFor Int
-  attempts     Int       @default(0)
-  error        String?
-  processedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  orderId      Int   
+  tagId        Int    
+  tagName      String    
+  status       String   
+  scheduledFor Int   
+  attempts     Int       @default(0)   
+  error        String?   
+  processedAt  DateTime?   
+  createdAt    DateTime  @default(now())   
+  updatedAt    DateTime  @updatedAt    
 
   @@index([orderId])
-  @@index([tagId])
-  @@index([status])
+  @@index([status, createdAt])
   @@index([tagId, status, createdAt])
+  @@index([orderId, status, createdAt])
+  @@index([orderId, tagId, status])
 }

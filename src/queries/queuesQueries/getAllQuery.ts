@@ -7,8 +7,8 @@ interface QueryResult {
 }
 
 interface QueryParams {
-  tagIds?: string[];
-  status?: string;
+  tagIds?: number[];
+  status?: string[] | string;
   limit?: number;
   page?: number;
   includeTotalCount?: boolean;
@@ -29,7 +29,7 @@ export async function getAllQuery({
       where.tagId = { in: tagIds };
     }
     if (status) {
-      where.status = status;
+      where.status = Array.isArray(status) ? { in: status } : status;
     }
 
     const [jobs, totalCount] = await Promise.all([
