@@ -57,7 +57,7 @@ export const createQueue: RequestHandler = async (
       };
 
       const result = await queuesQueries.createQueue(queueItem);
-      // await tagQueries.updateTagJobCountQuery(tag.tagId, "increment");
+      await tagQueries.updateTagCount(tag.tagId, "increment");
 
       if (result.error) {
         await job.remove();
@@ -73,8 +73,6 @@ export const createQueue: RequestHandler = async (
       });
     }
     // await RevalidateService.revalidateTag();
-
-    await queuesQueries.getQueueCount("SENT");
 
     res.status(201).json({
       success: true,

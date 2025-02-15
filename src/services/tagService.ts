@@ -54,7 +54,7 @@ export class TagService {
 
           await PausedQueue.add(
             "paused-job",
-            { ...job.data, timeLeft, attempts: 3 },
+            { ...job.data, timeLeft },
             { jobId: queueItem.id }
           );
 

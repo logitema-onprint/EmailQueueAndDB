@@ -12,6 +12,7 @@ export class QueueService {
     }
     const now = Date.now();
     const processAt = job.timestamp + (job.opts.delay ?? 0);
+    logger.info(processAt);
     const timeLeft = processAt - now;
 
     return timeLeft > 0 ? timeLeft : 0;

@@ -21,7 +21,7 @@ model Order {
   city           String
   customerId     String
   productName    String
-  productId      String
+  productId      Int
   orderTags      OrderTag[]
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -45,7 +45,7 @@ model OrderTag {
 
 model Rule {
   id        Int      @id @default(autoincrement())
-  productId String
+  productId Int
   ruleName      String
   tags      Int[]
   createdAt DateTime @default(now())

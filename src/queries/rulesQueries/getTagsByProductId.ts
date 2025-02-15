@@ -1,0 +1,61 @@
+import prisma from "../../services/prisma";
+import logger from "../../utils/logger";
+
+export async function findRuleTagsByProductId(productId: number) {
+  try {
+    // Find rules by productId
+    const rules = await prisma.rule.findMany({
+      where: { productId },
+    });
+
+    // If no rules found
+    if (rules.length === 0) {
+      logger.info(`No rules found for product ID ${productId}`);
+      return {
+        success: false,
+        message: `No rules found for product ID ${productId}`,
+      };
+    }
+
+    // Extract tag IDs from all rules
+    const tagIds = rules.flatMap((rule) => rule.tags || []);
+
+    // Fetch tags based on extracted tag IDs
+    const tags =
+      tagIds.length > 0
+        ? await prisma.tag.findMany({
+            where: {
+              id: { in: tagIds },
+            },
+            select: {
+              id: true,
+              tagName: true,
+              scheduledFor: true,
+            },
+          })
+        : [];
+
+    logger.success(`Found tags for product ID ${productId}`);
+
+    return {
+      success: true,
+      data: {
+        rules,
+        tags,
+      },
+    };
+  } catch (error) {
+    logger.error(
+      `Failed to find rules and tags for product ID ${productId}`,
+      error
+    );
+
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to retrieve rules and tags",
+    };
+  }
+}

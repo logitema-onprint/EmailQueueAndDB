@@ -1,3 +1,4 @@
+import { tagQueries } from ".";
 import prisma from "../../services/prisma";
 import logger from "../../utils/logger";
 
@@ -5,6 +6,11 @@ type CountOperation = "increment" | "decrement";
 
 export async function updateTagCount(tagId: number, operation: CountOperation) {
   try {
+    const tag = await tagQueries.getTag(tagId);
+    if (tag.error) {
+      return;
+    }
+
     const updatedTag = await prisma.tag.update({
       where: { id: tagId },
       data: {

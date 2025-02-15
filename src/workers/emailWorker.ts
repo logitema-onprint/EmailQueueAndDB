@@ -9,7 +9,7 @@ import { QueueService } from "../services/queueService";
 
 interface EmailJob {
   jobId: string;
-  tagId: string;
+  tagId: number;
   tagName: string;
 }
 
@@ -53,8 +53,8 @@ worker.on("completed", async (job: Job<EmailJob>) => {
   const updateStatus = queuesQueries.updateStatusQuery(jobId, {
     status: "SENT",
   });
-  // const updateJobCount = tagQueries.updateTagJobCountQuery(tagId, "decrement");
-  // const revalidateTag = RevalidateService.revalidateTag()
+  await tagQueries.updateTagCount(tagId, "decrement");
+
   await Promise.all([updateStatus]);
 });
 
