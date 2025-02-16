@@ -1,7 +1,9 @@
-import { create } from "./create";
-import { getByAgentAndTagId } from "./getOne";
+import { createOrder } from "./createQuery";
+import { getAllOrders } from "./getManyQuery";
+import { getOrder } from "./getQuery.ts";
 
 export const orderQueries = {
-  create,
-  getByAgentAndTagId,
+  createOrder,
+  getAllOrders,
+  getOrder,
 };

@@ -3,7 +3,7 @@ import logger from "../../utils/logger";
 
 export interface tagData {
   tagName: string;
-  scheduledFor: number;
+  scheduledFor: bigint;
 }
 
 export async function create(tagData: tagData) {
@@ -11,7 +11,7 @@ export async function create(tagData: tagData) {
     const result = await prisma.tag.create({
       data: {
         tagName: tagData.tagName,
-        scheduledFor: tagData.scheduledFor,
+        scheduledFor: BigInt(tagData.scheduledFor),
       },
     });
     logger.success(`Tag: ${result.tagName} ${result.id} created`);

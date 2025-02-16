@@ -1,21 +1,22 @@
 import { RequestHandler, Request, Response } from "express";
-// import { BullMQServices } from "../../services/bullmqService";
-import { tagQueries } from "../../queries/tagQueries";
-import { v4 as uuidv4 } from "uuid";
-import { Order } from "../../types/orderApi";
 import { orderQueries } from "../../queries/orderQueries";
 import logger from "../../utils/logger";
+import { rulesQueries } from "../../queries/rulesQueries";
+import { QueueService } from "../../services/queueService";
 
-interface OrderData {
+export interface OrderData {
   phoneNumber: string;
   userName: string;
-  userSurname: string;
-  companyName: string;
+  userSurname?: string;
+  companyName?: string;
   paymentDetails: string;
   subTotal: number;
   salesAgentId: string;
   country: string;
   city: string;
+  customerId: string;
+  productName: string;
+  productId: number;
 }
 
 export const createOrder: RequestHandler = async (
@@ -29,7 +30,13 @@ export const createOrder: RequestHandler = async (
       !orderData.salesAgentId ||
       !orderData.subTotal ||
       !orderData.userName ||
-      !orderData.paymentDetails
+      !orderData.paymentDetails ||
+      !orderData.phoneNumber ||
+      !orderData.city ||
+      !orderData.customerId ||
+      !orderData.productId ||
+      !orderData.subTotal ||
+      !orderData.userName
     ) {
       res.status(400).json({
         success: false,
@@ -37,49 +44,54 @@ export const createOrder: RequestHandler = async (
       });
     }
 
-    const timestamp = new Date().toISOString();
+    const tags = await rulesQueries.findRuleTagsByProductId(
+      orderData.productId
+    );
 
-    const clientId = uuidv4();
-    const order: Order = {
-      PK: `CLIENT#${clientId}`,
-      SK: `ORDER#${orderData}`,
-      orderId: uuidv4(),
-      phoneNumber: orderData.phoneNumber,
-      userName: orderData.userName,
-      userSurname: orderData.userSurname,
-      companyName: orderData.companyName,
-      paymentDetails: orderData.paymentDetails,
-      agentTagStatusKeys: [
-        `${orderData.salesAgentId}#${tag1.item?.id}#pending`,
-        `${orderData.salesAgentId}#${tag2.item?.id}#pending`,
-        `${orderData.salesAgentId}#${tag3.item?.id}#pending`,
-      ],
-
-      subTotal: orderData.subTotal,
-      salesAgentId: orderData.salesAgentId,
-      country: orderData.country,
-      updatedAt: timestamp,
-      createdAt: timestamp,
-      city: orderData.city,
-      tags: tags,
-    };
-    const [result] = await Promise.all([
-      orderQueries.create(order),
-      // BullMQServices.createJobs("eduardas2000@mail.ru", tags),
-    ]);
-
-    if (!result.success) {
+    if (!tags.success) {
       res.status(400).json({
         success: false,
-        message: result.error,
+        error: tags.error,
+        message: tags.message,
       });
-      logger.info(result.error);
       return;
     }
+
+    const order = await orderQueries.createOrder(orderData);
+
+    if (!tags.data?.tags) {
+      res.status(400).json({
+        success: false,
+        message: "Tags not found",
+      });
+      return;
+    }
+
+    const jobs = await QueueService.createQueues(
+      order.data?.id,
+      tags.data.tags
+    );
+
+    if (!jobs.success) {
+      res.status(400).json({
+        success: false,
+        message: jobs.message,
+        error: jobs.error,
+      });
+    }
+    if (!order.success) {
+      res.status(400).json({
+        success: false,
+        message: order.error,
+      });
+      logger.info(order.error);
+      return;
+    }
+
     res.status(200).json({
       success: true,
       message: "Created order and jobs by tag",
-      tagIds: tags.map((tag) => tag.tagName),
+      tagIds: tags.data.tags.map((tagId) => tagId.id),
     });
   } catch (error) {
     res.status(500).json({

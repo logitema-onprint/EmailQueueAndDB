@@ -1,37 +1,38 @@
-import { RequestHandler, Request, Response } from "express";
+import { RequestHandler, Response, Request } from "express";
 import { orderQueries } from "../../queries/orderQueries";
 import logger from "../../utils/logger";
+import { serializeBigInt } from "../../helpers/serializeBigInt";
 
-export const getOrderByStatusTagId: RequestHandler = async (
-  req: Request,
-  res: Response
-) => {
+export const getOrder: RequestHandler = async (req: Request, res: Response) => {
   try {
-    const { tagId, salesAgentId } = req.body;
-    console.log(req.body);
-    if (!tagId || !salesAgentId) {
-      res.status(404).json({
+    const orderId = Number(req.params.orderId);
+
+    if (!orderId) {
+      res.status(400).json({
+        success: false,
         message: "Missing required fields",
       });
     }
 
-    const result = await orderQueries.getByAgentAndTagId(salesAgentId, tagId);
+    const result = await orderQueries.getOrder(orderId);
+
     if (!result.success) {
       res.status(400).json({
         success: false,
         message: result.error,
       });
-      logger.info(result.error);
-      return;
     }
+    const transformedData = serializeBigInt(result.data);
     res.status(200).json({
       success: true,
-      message: "Good job",
+      data: transformedData,
+      message: "Orders retrieved successfully",
     });
   } catch (error) {
+    logger.error("Failed to get orders by agent and tag", error);
     res.status(500).json({
       success: false,
-      message: "Failed have fun",
+      message: "Failed to retrieve orders",
     });
   }
 };

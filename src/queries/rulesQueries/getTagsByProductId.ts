@@ -3,12 +3,10 @@ import logger from "../../utils/logger";
 
 export async function findRuleTagsByProductId(productId: number) {
   try {
-    // Find rules by productId
     const rules = await prisma.rule.findMany({
       where: { productId },
     });
 
-    // If no rules found
     if (rules.length === 0) {
       logger.info(`No rules found for product ID ${productId}`);
       return {
@@ -17,10 +15,10 @@ export async function findRuleTagsByProductId(productId: number) {
       };
     }
 
-    // Extract tag IDs from all rules
+   
     const tagIds = rules.flatMap((rule) => rule.tags || []);
 
-    // Fetch tags based on extracted tag IDs
+    
     const tags =
       tagIds.length > 0
         ? await prisma.tag.findMany({

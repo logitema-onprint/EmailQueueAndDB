@@ -12,8 +12,8 @@ model Order {
   id             Int        @id @default(autoincrement())
   phoneNumber    String
   userName       String
-  userSurname    String? // Optional
-  companyName    String? // Optional
+  userSurname    String? 
+  companyName    String?
   paymentDetails String
   subTotal       Float
   salesAgentId   String
@@ -22,25 +22,13 @@ model Order {
   customerId     String
   productName    String
   productId      Int
-  orderTags      OrderTag[]
+  jobs           Job[]
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
   @@index([salesAgentId])
   @@index([country])
   @@index([subTotal])
-}
-
-model OrderTag {
-  id          Int       @id @default(autoincrement())
-  orderId     Int
-  tagId       Int
-  status      String
-  completedAt DateTime?
-  order       Order     @relation(fields: [orderId], references: [id])
-
-  @@index([tagId])
-  @@index([orderId])
 }
 
 model Rule {
@@ -57,7 +45,7 @@ model Rule {
 model Tag {
   id        Int      @id @default(autoincrement())
   tagName      String
-  scheduledFor Int
+  scheduledFor BigInt   
   jobsCount    Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -68,16 +56,18 @@ model Tag {
 
 model Job {
   id           String    @id
-  orderId      Int   
+  orderId      Int?      
   tagId        Int    
   tagName      String    
   status       String   
-  scheduledFor Int   
+  scheduledFor BigInt   
   attempts     Int       @default(0)   
   error        String?   
-  processedAt  DateTime?   
+  processedAt  DateTime? 
+  completedAt  DateTime?  
   createdAt    DateTime  @default(now())   
   updatedAt    DateTime  @updatedAt    
+  order        Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade) 
 
   @@index([orderId])
   @@index([status, createdAt])

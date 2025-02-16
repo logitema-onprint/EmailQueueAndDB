@@ -1,9 +1,11 @@
 import { createOrder } from "./createOrder";
-import { getOrderByStatusTagId } from "./getOrder";
+import { getAllOrders } from "./getAllOrders";
+import { getOrder } from "./getOrder";
 
- const orderController = {
-    createOrder,
-    getOrderByStatusTagId,
-}
+const orderController = {
+  createOrder,
+  getOrder,
+  getAllOrders,
+};
 
-export default orderController
+export default orderController;

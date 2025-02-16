@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Tag" ALTER COLUMN "scheduledFor" SET DATA TYPE BIGINT;

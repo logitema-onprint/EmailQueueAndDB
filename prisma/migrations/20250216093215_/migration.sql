@@ -12,7 +12,7 @@ CREATE TABLE "Order" (
     "city" TEXT NOT NULL,
     "customerId" TEXT NOT NULL,
     "productName" TEXT NOT NULL,
-    "productId" TEXT NOT NULL,
+    "productId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -20,20 +20,10 @@ CREATE TABLE "Order" (
 );
 
 -- CreateTable
-CREATE TABLE "OrderTag" (
-    "id" SERIAL NOT NULL,
-    "orderId" INTEGER NOT NULL,
-    "tagId" INTEGER NOT NULL,
-    "status" TEXT NOT NULL,
-    "completedAt" TIMESTAMP(3),
-
-    CONSTRAINT "OrderTag_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "Rule" (
     "id" SERIAL NOT NULL,
-    "productId" TEXT NOT NULL,
+    "productId" INTEGER NOT NULL,
+    "ruleName" TEXT NOT NULL,
     "tags" INTEGER[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -45,9 +35,7 @@ CREATE TABLE "Rule" (
 CREATE TABLE "Tag" (
     "id" SERIAL NOT NULL,
     "tagName" TEXT NOT NULL,
-    "scheduledFor" BOOLEAN NOT NULL,
-    "templateName" TEXT NOT NULL,
-    "message" TEXT NOT NULL,
+    "scheduledFor" INTEGER NOT NULL,
     "jobsCount" INTEGER NOT NULL DEFAULT 0,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -59,14 +47,17 @@ CREATE TABLE "Tag" (
 -- CreateTable
 CREATE TABLE "Job" (
     "id" TEXT NOT NULL,
-    "orderId" INTEGER NOT NULL,
+    "orderId" INTEGER,
     "tagId" INTEGER NOT NULL,
+    "tagName" TEXT NOT NULL,
     "status" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "scheduledFor" TIMESTAMP(3) NOT NULL,
+    "scheduledFor" INTEGER NOT NULL,
     "attempts" INTEGER NOT NULL DEFAULT 0,
     "error" TEXT,
+    "processedAt" TIMESTAMP(3),
+    "completedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Job_pkey" PRIMARY KEY ("id")
 );
@@ -81,12 +72,6 @@ CREATE INDEX "Order_country_idx" ON "Order"("country");
 CREATE INDEX "Order_subTotal_idx" ON "Order"("subTotal");
 
 -- CreateIndex
-CREATE INDEX "OrderTag_tagId_idx" ON "OrderTag"("tagId");
-
--- CreateIndex
-CREATE INDEX "OrderTag_orderId_idx" ON "OrderTag"("orderId");
-
--- CreateIndex
 CREATE INDEX "Rule_productId_idx" ON "Rule"("productId");
 
 -- CreateIndex
@@ -96,13 +81,16 @@ CREATE INDEX "Tag_tagName_idx" ON "Tag"("tagName");
 CREATE INDEX "Job_orderId_idx" ON "Job"("orderId");
 
 -- CreateIndex
-CREATE INDEX "Job_tagId_idx" ON "Job"("tagId");
+CREATE INDEX "Job_status_createdAt_idx" ON "Job"("status", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "Job_status_idx" ON "Job"("status");
+CREATE INDEX "Job_tagId_status_createdAt_idx" ON "Job"("tagId", "status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Job_orderId_status_createdAt_idx" ON "Job"("orderId", "status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Job_orderId_tagId_status_idx" ON "Job"("orderId", "tagId", "status");
 
 -- AddForeignKey
-ALTER TABLE "OrderTag" ADD CONSTRAINT "OrderTag_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Job" ADD CONSTRAINT "Job_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "Tag"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Job" ADD CONSTRAINT "Job_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;

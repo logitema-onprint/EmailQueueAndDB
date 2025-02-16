@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Job" ALTER COLUMN "scheduledFor" SET DATA TYPE BIGINT;

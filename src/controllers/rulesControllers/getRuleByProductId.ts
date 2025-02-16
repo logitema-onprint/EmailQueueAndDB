@@ -2,6 +2,7 @@ import { Request, RequestHandler, Response } from "express";
 
 import logger from "../../utils/logger";
 import { rulesQueries } from "../../queries/rulesQueries";
+import { serializeBigInt } from "../../helpers/serializeBigInt";
 
 export const getRulesByProductId: RequestHandler = async (
   req: Request,
@@ -35,12 +36,13 @@ export const getRulesByProductId: RequestHandler = async (
         message: `No rules found for product ${productId}`,
       });
     }
+    const transformedData = serializeBigInt(result.data);
+    const transformedTags = serializeBigInt(tags.data?.tags);
 
-    // Successful response
     res.status(200).json({
       success: true,
-      data: result.data,
-      tags: tags.data?.tags,
+      data: transformedData,
+      tags: transformedTags,
     });
   } catch (error) {
     logger.error(`Failed to get rules for product`, error);

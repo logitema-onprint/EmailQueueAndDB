@@ -3,11 +3,14 @@ import logger from "../../utils/logger";
 import { EmailQueue } from "../../queues/emailQueue";
 import { v4 as uuidv4 } from "uuid";
 import { queuesQueries } from "../../queries/queuesQueries";
-import { QueueItem } from "../../types/queueApi";
 import { tagQueries } from "../../queries/tagQueries";
-import { RevalidateService } from "../../services/revalidateNext";
 import { JobItem } from "../../queries/queuesQueries/createQuery";
-import { log } from "console";
+
+interface TagInput {
+  tagName: string;
+  tagId: number;
+  scheduledFor: bigint;
+}
 
 export const createQueue: RequestHandler = async (
   req: Request,
@@ -16,10 +19,11 @@ export const createQueue: RequestHandler = async (
   try {
     const { orderId, tags } = req.body;
 
-    if (!orderId || !tags || tags.length === 0) {
+    // Only check for tags, since orderId is optional
+    if (!tags || tags.length === 0) {
       res.status(400).json({
         success: false,
-        message: "Missing required fields",
+        message: "Missing required tags",
       });
       return;
     }
@@ -29,6 +33,11 @@ export const createQueue: RequestHandler = async (
 
     for (const tag of tags) {
       const jobId = uuidv4();
+
+      console.log(tag.scheduledFor);
+      const scheduledFor = BigInt(tag.scheduledFor);
+      console.log(scheduledFor);
+
       const job = await EmailQueue.add(
         "email-job",
         {
@@ -38,20 +47,20 @@ export const createQueue: RequestHandler = async (
         },
         {
           jobId: jobId,
-          delay: tag.scheduledFor,
+          delay: Number(scheduledFor), // Convert to number for BullMQ
           attempts: 3,
         }
       );
 
       // Prepare queue item for database
       const queueItem: JobItem = {
-        orderId: orderId,
-        jobId,
+        id: jobId,
+        orderId,
         tagId: tag.tagId,
         tagName: tag.tagName,
         status: "QUEUED",
         updatedAt: timestamp,
-        scheduledFor: tag.scheduledFor,
+        scheduledFor, // Store as BigInt in database
         processedAt: undefined,
         error: null,
       };
@@ -72,7 +81,6 @@ export const createQueue: RequestHandler = async (
         tag: tag.tagName,
       });
     }
-    // await RevalidateService.revalidateTag();
 
     res.status(201).json({
       success: true,

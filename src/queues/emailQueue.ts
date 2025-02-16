@@ -2,9 +2,9 @@ import { Queue } from "bullmq";
 import "../workers/emailWorker";
 
 
-interface EmailJob {
+export interface EmailJob {
   jobId: string;
-  tagId: string;
+  tagId: number;
   tagName: string
   email?: string;
 }

@@ -1,5 +1,6 @@
 import { RequestHandler, Request, Response } from "express";
 import { tagQueries } from "../../queries/tagQueries";
+import { serializeBigInt } from "../../helpers/serializeBigInt";
 
 export const getTag: RequestHandler = async (req: Request, res: Response) => {
   try {
@@ -18,10 +19,11 @@ export const getTag: RequestHandler = async (req: Request, res: Response) => {
         message: `${query.error}`,
       });
     }
+    const serializedData = serializeBigInt(query.data);
 
     res.status(200).json({
       success: true,
-      data: query.data,
+      data: serializedData,
     });
   } catch (error) {
     res.status(500).json({

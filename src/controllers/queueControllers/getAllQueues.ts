@@ -6,6 +6,7 @@ import { PausedQueue } from "../../queues/pausedQueue";
 import logger from "../../utils/logger";
 import { bullToDbStatus } from "../../helpers/bullToDbStatus";
 import { log } from "console";
+import { serializeBigInt } from "../../helpers/serializeBigInt";
 
 export const getAllQueues: RequestHandler = async (
   req: Request,
@@ -64,12 +65,14 @@ export const getAllQueues: RequestHandler = async (
 
     const { jobs, totalCount } = await queuesQueries.getAllQuery(queryParams);
 
+    const transformedJobs = serializeBigInt(jobs);
+
     res.status(200).json({
       success: true,
       data: {
         postgres: {
           jobCount: totalCount,
-          items: jobs,
+          items: transformedJobs,
         },
       },
       pagination: {
