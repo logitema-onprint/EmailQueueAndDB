@@ -11,7 +11,7 @@ export async function create(tagData: tagData) {
     const result = await prisma.tag.create({
       data: {
         tagName: tagData.tagName,
-        scheduledFor: BigInt(tagData.scheduledFor),
+        scheduledFor: tagData.scheduledFor,
       },
     });
     logger.success(`Tag: ${result.tagName} ${result.id} created`);

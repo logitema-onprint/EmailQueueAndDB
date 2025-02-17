@@ -2,6 +2,7 @@ import { RequestHandler, Request, Response } from "express";
 import { tagQueries } from "../../queries/tagQueries";
 import { serializeBigInt } from "../../helpers/serializeBigInt";
 import { Tag } from "@prisma/client";
+import logger from "../../utils/logger";
 
 export const getAllTags: RequestHandler = async (
   req: Request,
@@ -19,6 +20,7 @@ export const getAllTags: RequestHandler = async (
 
     // Transform the data to handle BigInt values
     const transformedData = serializeBigInt(query.data);
+    logger.info(query.data?.length)
 
     res.status(200).json({
       success: true,

@@ -8,28 +8,51 @@ export const getAllOrders: RequestHandler = async (
   res: Response
 ) => {
   try {
-    const { page = 1, limit = 25, includeTotalCount = true } = req.query;
+    const page = parseInt(req.query.page as string) || 1;
+    const itemsPerPage = parseInt(req.query.limit as string) || 25;
+
+    if (page < 1) {
+      res.status(400).json({
+        success: false,
+        message: "Page number must be greater than 0",
+      });
+      return
+    }
 
     const result = await orderQueries.getAllOrders({
-      page: Number(page),
-      limit: Number(limit),
-      includeTotalCount: Boolean(includeTotalCount),
+      page,
+      limit: itemsPerPage,
+      includeTotalCount: true,
     });
 
     if (!result) {
       res.status(400).json({
         success: false,
-        message: result,
+        message: "Failed to retrieve orders",
       });
+      return
     }
 
     const transformedOrders = serializeBigInt(result.orders);
+    const totalCount = result.totalCount;
 
     res.status(200).json({
       success: true,
       data: {
-        orders: transformedOrders,
-        totalCount: result.totalCount,
+        orders: {
+          orderCount: totalCount,
+          items: transformedOrders,
+        },
+      },
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / itemsPerPage),
+        itemsPerPage,
+        totalItems: totalCount,
+        nextPage: page < Math.ceil(totalCount / itemsPerPage) ? page + 1 : null,
+        previousPage: page > 1 ? page - 1 : null,
+        hasNextPage: page * itemsPerPage < totalCount,
+        hasPreviousPage: page > 1,
       },
       message: "Orders retrieved successfully",
     });

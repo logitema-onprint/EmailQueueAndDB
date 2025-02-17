@@ -7,6 +7,7 @@ export const ruleRoutes = async (server: Express) => {
   server.post("/api/rule", ruleController.createRule);
   server.get("/api/rule/:ruleId", ruleController.getRule);
   server.get("/api/rules/product/:productId", ruleController.getRulesByProductId);
+  server.get("/api/rules", ruleController.getRules)
 
   server.delete("/api/rule/:ruleId", ruleController.deleteRule);
 };
