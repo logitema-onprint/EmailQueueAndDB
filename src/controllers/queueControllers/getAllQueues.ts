@@ -1,11 +1,8 @@
 import { RequestHandler, Request, Response } from "express";
-import { EmailQueue } from "../../queues/emailQueue";
 import { JobStatus } from "bull";
 import { queuesQueries } from "../../queries/queuesQueries";
-import { PausedQueue } from "../../queues/pausedQueue";
 import logger from "../../utils/logger";
 import { bullToDbStatus } from "../../helpers/bullToDbStatus";
-import { log } from "console";
 import { serializeBigInt } from "../../helpers/serializeBigInt";
 
 export const getAllQueues: RequestHandler = async (

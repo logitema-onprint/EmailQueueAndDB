@@ -22,6 +22,7 @@ export const getQueue: RequestHandler = async (req: Request, res: Response) => {
         success: false,
         message: `Job ${jobId} not found in any queue`,
       });
+      return;
     }
 
     const transformedResult = serializeBigInt(result);

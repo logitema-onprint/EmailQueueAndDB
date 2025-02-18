@@ -17,7 +17,7 @@ interface Tags {
 const bigIntToNumber = (value: bigint): number => {
   const num = Number(value);
   if (num > Number.MAX_SAFE_INTEGER) {
-    throw new Error('BigInt value is too large to be converted to number');
+    throw new Error("BigInt value is too large to be converted to number");
   }
   return num;
 };
@@ -34,10 +34,10 @@ export class QueueService {
 
       for (const tag of tags) {
         const jobId = uuidv4();
-        
+
         // Convert BigInt to number for BullMQ delay
         const delay = bigIntToNumber(tag.scheduledFor);
-        
+
         const job = await EmailQueue.add(
           "email-job",
           {
@@ -123,17 +123,54 @@ export class QueueService {
       }
     }
 
+    logger.debug(jobId);
+
     const item = await queuesQueries.getQuery(jobId);
 
-    if (!item) {
-      logger.error(`Job ${jobId} not found in DB`);
-      return null;
+    if (item.item === null) {
+      return {
+        message: `Job not found in Db`,
+      };
     }
-    logger.success(`Job ${item.item?.id} found in DB`);
+
+    logger.success(`Job ${item?.item} found in DB`);
 
     return {
       job,
-      data: item.item,
+      data: item?.item,
     };
+  }
+  static async removeJobsFromQueues(jobIds: string[]) {
+    try {
+      for (const jobId of jobIds) {
+        const emailQueueJob = await EmailQueue.getJob(jobId);
+
+        if (emailQueueJob) {
+          await emailQueueJob.remove();
+          logger.info(`Job ${jobId} removed from emailQueue`);
+          continue;
+        }
+        const pausedQueueJob = await PausedQueue.getJob(jobId);
+
+        if (pausedQueueJob) {
+          await pausedQueueJob.remove();
+          logger.info(`Job ${jobId} removed from pausedQueue`);
+          continue;
+        }
+
+        logger.info(`Job ${jobId} not found in any queue`);
+      }
+
+      return {
+        success: true,
+        message: "Jobs removed from queues",
+      };
+    } catch (error) {
+      logger.error("Failed to remove jobs from queues", error);
+      return {
+        success: false,
+        error: "Failed to remove jobs from queues",
+      };
+    }
   }
 }
