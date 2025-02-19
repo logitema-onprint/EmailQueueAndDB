@@ -30,8 +30,11 @@ export const getFilteredOrders: RequestHandler = async (
     if (!data.success) {
       res.status(400).json({
         success: false,
-        message: data.error,
+        totalCount: data.totalCount,
+        message: "No data with this query",
+        errorMessage: data.error,
       });
+      return
     }
 
     const transformedData = serializeBigInt(data.data);

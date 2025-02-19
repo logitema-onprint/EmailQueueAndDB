@@ -1,10 +1,11 @@
 import prisma from "../../services/prisma";
 import logger from "../../utils/logger";
 
+
 export async function getFilteredOrders(
   filters: {
     searchTerm?: string;
-    tagIds?: number[] | null; // Changed to array
+    tagIds?: number[] | null;
     tagStatuses?: string[] | null;
     location?: {
       country: string;
@@ -21,51 +22,78 @@ export async function getFilteredOrders(
     priceRange?: { min: string; max: string };
     isNot?: boolean;
   },
-  page: number = 1,
-  pageSize: number = 25
+  page?: number,
+  pageSize?: number,
+  buildWhere?: boolean
 ) {
   try {
     const where: any = {};
+
+    if (filters.tagIds?.length && !filters.isNot) {
+      const existingTags = await prisma.job.findMany({
+        select: {
+          tagId: true
+        },
+        distinct: ['tagId']
+      });
+
+      const existingTagIds = existingTags.map(tag => tag.tagId);
+      const invalidTagIds = filters.tagIds.filter(id => !existingTagIds.includes(id));
+
+      if (invalidTagIds.length > 0) {
+        return {
+          success: false,
+          error: `Invalid tag IDs: ${invalidTagIds.join(', ')}`
+        };
+      }
+    }
 
     if (filters.searchTerm) {
       const orderId = parseInt(filters.searchTerm);
       if (!isNaN(orderId)) {
         where.id = filters.isNot ? { not: orderId } : orderId;
       } else {
-        where.OR = [
-          {
-            userName: {
-              contains: filters.searchTerm,
-              mode: "insensitive",
-              ...(filters.isNot && {
-                not: { contains: filters.searchTerm, mode: "insensitive" },
-              }),
+        if (filters.isNot) {
+          where.AND = [
+            {
+              userName: {
+                not: { contains: filters.searchTerm, mode: "insensitive" }
+              }
             },
-          },
-          {
-            userSurname: {
-              contains: filters.searchTerm,
-              mode: "insensitive",
-              ...(filters.isNot && {
-                not: { contains: filters.searchTerm, mode: "insensitive" },
-              }),
+            {
+              userSurname: {
+                not: { contains: filters.searchTerm, mode: "insensitive" }
+              }
+            }
+          ];
+        } else {
+          where.OR = [
+            {
+              userName: {
+                contains: filters.searchTerm,
+                mode: "insensitive"
+              }
             },
-          },
-        ];
+            {
+              userSurname: {
+                contains: filters.searchTerm,
+                mode: "insensitive"
+              }
+            }
+          ];
+        }
       }
     }
 
     if (filters.companyName) {
       if (filters.isNot) {
-        where.NOT = {
-          companyName: {
-            contains: filters.companyName,
-          },
+        where.companyName = {
+          not: { contains: filters.companyName, mode: "insensitive" }
         };
       } else {
         where.companyName = {
           contains: filters.companyName,
-          mode: "insensitive",
+          mode: "insensitive"
         };
       }
     }
@@ -102,25 +130,62 @@ export async function getFilteredOrders(
     }
 
     if (filters.dateRange?.from || filters.dateRange?.to) {
-      where.createdAt = {};
-
-      if (filters.dateRange.from) {
-        where.createdAt.gte = new Date(
-          `${filters.dateRange.from}T00:00:00.000Z`
+      if (filters.isNot) {
+        where.OR = [
+          {
+            createdAt: {
+              lt: filters.dateRange.from
+                ? new Date(`${filters.dateRange.from}T00:00:00.000Z`)
+                : undefined
+            }
+          },
+          {
+            createdAt: {
+              gt: filters.dateRange.to
+                ? new Date(`${filters.dateRange.to}T23:59:59.999Z`)
+                : undefined
+            }
+          }
+        ].filter(condition =>
+          condition.createdAt.lt !== undefined ||
+          condition.createdAt.gt !== undefined
         );
-      }
-
-      if (filters.dateRange.to) {
-        where.createdAt.lte = new Date(`${filters.dateRange.to}T23:59:59.999Z`);
+      } else {
+        where.createdAt = {};
+        if (filters.dateRange.from) {
+          where.createdAt.gte = new Date(`${filters.dateRange.from}T00:00:00.000Z`);
+        }
+        if (filters.dateRange.to) {
+          where.createdAt.lte = new Date(`${filters.dateRange.to}T23:59:59.999Z`);
+        }
       }
     }
+
     if (filters.priceRange?.min || filters.priceRange?.max) {
-      where.subTotal = {};
-      if (filters.priceRange.min) {
-        where.subTotal.gte = parseFloat(filters.priceRange.min);
-      }
-      if (filters.priceRange.max) {
-        where.subTotal.lte = parseFloat(filters.priceRange.max);
+      if (filters.isNot) {
+        where.OR = [
+          {
+            subTotal: {
+              lt: filters.priceRange.min ? parseFloat(filters.priceRange.min) : undefined
+            }
+          },
+          {
+            subTotal: {
+              gt: filters.priceRange.max ? parseFloat(filters.priceRange.max) : undefined
+            }
+          }
+        ].filter(condition =>
+          condition.subTotal.lt !== undefined ||
+          condition.subTotal.gt !== undefined
+        );
+      } else {
+        where.subTotal = {};
+        if (filters.priceRange.min) {
+          where.subTotal.gte = parseFloat(filters.priceRange.min);
+        }
+        if (filters.priceRange.max) {
+          where.subTotal.lte = parseFloat(filters.priceRange.max);
+        }
       }
     }
 
@@ -128,49 +193,68 @@ export async function getFilteredOrders(
       if (filters.isNot) {
         where.jobs = {
           none: {
-            OR: [
+            AND: [
               ...(filters.tagIds?.length
                 ? [
-                    {
-                      tagId: { in: filters.tagIds },
-                    },
-                  ]
+                  {
+                    tagId: { in: filters.tagIds }
+                  }
+                ]
                 : []),
               ...(filters.tagStatuses?.length
                 ? [
-                    {
-                      status: { in: filters.tagStatuses },
-                    },
-                  ]
-                : []),
-            ],
-          },
+                  {
+                    status: { in: filters.tagStatuses }
+                  }
+                ]
+                : [])
+            ]
+          }
         };
       } else {
         where.jobs = {
           some: {
-            OR: [
+            AND: [
               ...(filters.tagIds?.length
                 ? [
-                    {
-                      tagId: { in: filters.tagIds },
-                    },
-                  ]
+                  {
+                    tagId: { in: filters.tagIds }
+                  }
+                ]
                 : []),
               ...(filters.tagStatuses?.length
                 ? [
-                    {
-                      status: { in: filters.tagStatuses },
-                    },
-                  ]
-                : []),
-            ],
-          },
+                  {
+                    status: { in: filters.tagStatuses }
+                  }
+                ]
+                : [])
+            ]
+          }
         };
       }
     }
-
     const totalCount = await prisma.order.count({ where });
+    logger.info(totalCount);
+    if (buildWhere) {
+      return {
+        success: true,
+        where
+      };
+    }
+
+
+    if (totalCount === 0) {
+      return {
+        success: false,
+        totalCount,
+        data: [],
+      };
+    }
+
+    page = Math.max(1, page || 1);
+    pageSize = Math.max(1, Math.min(100, pageSize || 25));
+
 
     const orders = await prisma.order.findMany({
       where,

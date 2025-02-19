@@ -144,10 +144,12 @@ export class QueueService {
     try {
       for (const jobId of jobIds) {
         const emailQueueJob = await EmailQueue.getJob(jobId);
+        logger.info(emailQueueJob?.data.tagId)
 
         if (emailQueueJob) {
           await emailQueueJob.remove();
           logger.info(`Job ${jobId} removed from emailQueue`);
+          await tagQueries.updateTagCount(emailQueueJob?.data.tagId, "decrement")
           continue;
         }
         const pausedQueueJob = await PausedQueue.getJob(jobId);
@@ -155,6 +157,7 @@ export class QueueService {
         if (pausedQueueJob) {
           await pausedQueueJob.remove();
           logger.info(`Job ${jobId} removed from pausedQueue`);
+          await tagQueries.updateTagCount(pausedQueueJob?.data.tagId, "decrement")
           continue;
         }
 
