@@ -1,55 +1,43 @@
 import prisma from "../../services/prisma";
 import { FilteredOrders } from "../../types/orderApi";
 import logger from "../../utils/logger";
-import { getFilteredOrders } from "./getFilteredQuery";
 
-
-
-export async function deleteFiltered(filter: FilteredOrders['filters']) {
+export async function deleteFiltered(where: FilteredOrders['filters'], batchSize = 50) {
     try {
-        const whereResult = await getFilteredOrders(
-            filter,
-            undefined,
-            undefined,
-            true
-        );
-
-        if (!whereResult.success || !whereResult.where) {
-            return {
-                success: false,
-                error: whereResult.error || "Failed to build where clause",
-                jobIds: []
-            };
-        }
-
-        // Find job IDs for queue cleanup
-        const jobsToDelete = await prisma.job.findMany({
-            where: {
-                order: whereResult.where
-            },
-            select: {
-                id: true
-            }
+        const batchToDelete = await prisma.order.findMany({
+            where: where,
+            take: batchSize,
+            select: { id: true }
         });
 
-        // Delete orders using the same where clause
+        const batchJobIds = await prisma.job.findMany({
+            where: {
+                orderId: {
+                    in: batchToDelete.map(order => order.id)
+                }
+            },
+            select: { id: true }
+        });
+
         const deleted = await prisma.order.deleteMany({
-            where: whereResult.where
+            where: {
+                id: {
+                    in: batchToDelete.map(order => order.id)
+                }
+            }
         });
 
         return {
             success: true,
             deletedOrders: deleted.count,
-            jobIds: jobsToDelete.map(job => job.id)
+            jobIds: batchJobIds.map(job => job.id)
         };
     } catch (error) {
-        logger.error("Failed to delete filtered orders:", error);
+        logger.error('Batch deletion failed', error);
         return {
             success: false,
-            error: "Failed to delete orders",
+            error: `Failed to delete orders ${error}`,
             jobIds: []
         };
     }
-
-
 }

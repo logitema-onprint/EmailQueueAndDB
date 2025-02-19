@@ -239,6 +239,7 @@ export async function getFilteredOrders(
     if (buildWhere) {
       return {
         success: true,
+        totalCount,
         where
       };
     }

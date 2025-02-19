@@ -19,7 +19,7 @@ export async function updateTagCount(tagId: number, operation: CountOperation) {
       },
     });
 
-    logger.success(`Tag ${tagId} job count ${operation}d`);
+
 
     return {
       success: true,

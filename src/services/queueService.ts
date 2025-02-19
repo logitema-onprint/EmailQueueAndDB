@@ -142,31 +142,31 @@ export class QueueService {
   }
   static async removeJobsFromQueues(jobIds: string[]) {
     try {
-      for (const jobId of jobIds) {
+      const removalPromises = jobIds.map(async (jobId) => {
         const emailQueueJob = await EmailQueue.getJob(jobId);
-        logger.info(emailQueueJob?.data.tagId)
-
         if (emailQueueJob) {
           await emailQueueJob.remove();
-          logger.info(`Job ${jobId} removed from emailQueue`);
-          await tagQueries.updateTagCount(emailQueueJob?.data.tagId, "decrement")
-          continue;
+          await tagQueries.updateTagCount(emailQueueJob.data.tagId, "decrement");
+          return { jobId, queue: 'email' };
         }
-        const pausedQueueJob = await PausedQueue.getJob(jobId);
 
+        const pausedQueueJob = await PausedQueue.getJob(jobId);
         if (pausedQueueJob) {
           await pausedQueueJob.remove();
-          logger.info(`Job ${jobId} removed from pausedQueue`);
-          await tagQueries.updateTagCount(pausedQueueJob?.data.tagId, "decrement")
-          continue;
+          await tagQueries.updateTagCount(pausedQueueJob.data.tagId, "decrement");
+          return { jobId, queue: 'paused' };
         }
 
         logger.info(`Job ${jobId} not found in any queue`);
-      }
+        return null;
+      });
+
+      const results = await Promise.all(removalPromises);
 
       return {
         success: true,
         message: "Jobs removed from queues",
+        details: results.filter(result => result !== null)
       };
     } catch (error) {
       logger.error("Failed to remove jobs from queues", error);
