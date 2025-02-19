@@ -15,10 +15,8 @@ export async function findRuleTagsByProductId(productId: number) {
       };
     }
 
-   
     const tagIds = rules.flatMap((rule) => rule.tags || []);
 
-    
     const tags =
       tagIds.length > 0
         ? await prisma.tag.findMany({
@@ -32,8 +30,6 @@ export async function findRuleTagsByProductId(productId: number) {
             },
           })
         : [];
-
-    logger.success(`Found tags for product ID ${productId}`);
 
     return {
       success: true,

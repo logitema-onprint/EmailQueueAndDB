@@ -24,7 +24,8 @@ export const getFilteredOrders: RequestHandler = async (
     const data = await orderQueries.getFilteredOrders(
       filters,
       page,
-      itemsPerPage
+      itemsPerPage,
+      false
     );
 
     if (!data.success) {

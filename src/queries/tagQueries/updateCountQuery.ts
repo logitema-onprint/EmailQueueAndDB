@@ -26,7 +26,7 @@ export async function updateTagCount(tagId: number, operation: CountOperation) {
       data: updatedTag,
     };
   } catch (error) {
-    logger.error(`Failed to update tag count: ${error}`);
+    logger.error(`Failed to update tag count ${tagId}: ${error}`);
     return {
       success: false,
       error:

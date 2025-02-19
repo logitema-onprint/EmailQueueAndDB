@@ -165,6 +165,7 @@ export class BatchService {
         0
       );
 
+      
       const batchDuration = Date.now() - batchStartTime;
       batchTimes.push(batchDuration);
 
