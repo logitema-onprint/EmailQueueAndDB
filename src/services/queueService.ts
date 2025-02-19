@@ -35,7 +35,6 @@ export class QueueService {
       for (const tag of tags) {
         const jobId = uuidv4();
 
-        // Convert BigInt to number for BullMQ delay
         const delay = bigIntToNumber(tag.scheduledFor);
 
         const job = await EmailQueue.add(
@@ -146,15 +145,21 @@ export class QueueService {
         const emailQueueJob = await EmailQueue.getJob(jobId);
         if (emailQueueJob) {
           await emailQueueJob.remove();
-          await tagQueries.updateTagCount(emailQueueJob.data.tagId, "decrement");
-          return { jobId, queue: 'email' };
+          await tagQueries.updateTagCount(
+            emailQueueJob.data.tagId,
+            "decrement"
+          );
+          return { jobId, queue: "email" };
         }
 
         const pausedQueueJob = await PausedQueue.getJob(jobId);
         if (pausedQueueJob) {
           await pausedQueueJob.remove();
-          await tagQueries.updateTagCount(pausedQueueJob.data.tagId, "decrement");
-          return { jobId, queue: 'paused' };
+          await tagQueries.updateTagCount(
+            pausedQueueJob.data.tagId,
+            "decrement"
+          );
+          return { jobId, queue: "paused" };
         }
 
         logger.info(`Job ${jobId} not found in any queue`);
@@ -166,7 +171,7 @@ export class QueueService {
       return {
         success: true,
         message: "Jobs removed from queues",
-        details: results.filter(result => result !== null)
+        details: results.filter((result) => result !== null),
       };
     } catch (error) {
       logger.error("Failed to remove jobs from queues", error);

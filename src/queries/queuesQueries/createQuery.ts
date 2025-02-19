@@ -32,7 +32,7 @@ export async function createQueue(jobData: JobItem) {
         updatedAt: jobData.updatedAt,
       },
     });
-    logger.success("Job created");
+
     return { success: true, data: job };
   } catch (error) {
     return { success: false, error: `Failed to create job: ${error}` };

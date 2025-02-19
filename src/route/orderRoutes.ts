@@ -9,11 +9,12 @@ export const orderRoutes = async (server: Express) => {
   server.get("/api/order/:orderId", orderController.getOrder);
   server.get("/api/orders", orderController.getAllOrders);
   server.delete("/api/order/:orderId", orderController.deleteOrder);
-  server.delete("/api/orders/filter", orderController.deleteManyOrders)
+  server.delete("/api/orders/filter", orderController.deleteManyOrders);
 
   server.post("/api/order/filter", orderController.getFilteredOrders);
+  server.post("/api/orders/tags/filter", orderController.addTagsToOrders);
 
-  server.post('/api/order/test', testOrderControllers.createMassOrders)
+  server.post("/api/order/test", testOrderControllers.createMassOrders);
 };
 
 export default router;

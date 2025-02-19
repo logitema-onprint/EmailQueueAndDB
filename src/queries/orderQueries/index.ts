@@ -3,6 +3,7 @@ import { deleteFiltered } from "./deleteFiltered";
 import { deleteOrder } from "./deleteQuery";
 import { getFilteredOrders } from "./getFilteredQuery";
 import { getAllOrders } from "./getManyQuery";
+import { getOrderIds } from "./getOrdersIds";
 import { getOrder } from "./getQuery.ts";
 
 export const orderQueries = {
@@ -11,5 +12,6 @@ export const orderQueries = {
   getOrder,
   deleteOrder,
   getFilteredOrders,
-  deleteFiltered
+  deleteFiltered,
+  getOrderIds,
 };

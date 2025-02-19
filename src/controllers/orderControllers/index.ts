@@ -1,3 +1,4 @@
+import { addTagsToOrders } from "./addTagsToOrders";
 import { createOrder } from "./createOrder";
 import { deleteManyOrders } from "./deleteManyOrders";
 import { deleteOrder } from "./deleteOrder";
@@ -11,7 +12,8 @@ const orderController = {
   getAllOrders,
   deleteOrder,
   getFilteredOrders,
-  deleteManyOrders
+  deleteManyOrders,
+  addTagsToOrders
 };
 
 export default orderController;

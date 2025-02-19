@@ -24,7 +24,7 @@ export const createMassOrders: RequestHandler = async (
             city: "Vilnius",
             customerId: "cust123",
             productName: "Business Cards",
-            productId: 1,
+            productId: 16,
             userSurname: "Doe",
             companyName: "TechCorp"
         };
