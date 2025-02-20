@@ -8,7 +8,7 @@ export const queueRoutes = async (server: Express) => {
   server.get("/api/queue/queues", queueControllers.getAllQueues);
   server.post("/api/queue/pause", queueControllers.pauseQueuesByTag);
   server.post("/api/queue/resume", queueControllers.resumeQueuesByTag);
-  server.post("/api/queue/batch-delete", queueControllers.deleteManyQueues);
+
 
   // Then routes with parameters
   server.post("/api/queue/pause/job/:jobId", queueControllers.pauseQueue);

@@ -37,7 +37,7 @@ export const resumeQueue: RequestHandler = async (
 
     await pausedJob.remove();
     await queuesQueries.updateStatusQuery(jobId, { status: "QUEUED" })
-    await queuesQueries.updateSendTimeQuery(jobId, pausedJob.data.timeLeft);
+    
 
     logger.info(`Job ${jobId} resumed`);
 

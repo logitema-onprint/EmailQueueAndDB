@@ -10,8 +10,8 @@ export const createMassOrders: RequestHandler = async (
     res: Response
 ) => {
     try {
-        const count = 100000;
-        const batchSize = 100;
+        const count = 1000;
+        const batchSize = 200;
         const concurrency = 10;
 
         const baseOrder: OrderData = {

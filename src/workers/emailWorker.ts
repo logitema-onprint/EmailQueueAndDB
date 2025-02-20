@@ -71,7 +71,7 @@ worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
 
   await queuesQueries.updateStatusQuery(job.data.jobId, { status: "FAILED" });
   logger.error(
-    `Step ${job.data.tagName} failed for queue ${job.data.tagName} (Attempt ${attempt}/${maxAttempts})`
+    `Job ${job.data.tagName} failed for queue ${job.data.tagName} (Attempt ${attempt}/${maxAttempts})`
   );
 });
 

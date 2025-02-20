@@ -1,5 +1,5 @@
-import prisma from "../../services/prisma";
-import logger from "../../utils/logger";
+import prisma from "../../../services/prisma";
+import logger from "../../../utils/logger";
 
 export async function getFilteredOrders(
   filters: {

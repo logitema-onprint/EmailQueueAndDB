@@ -8,6 +8,7 @@ interface QueryResult {
 
 interface QueryParams {
   tagIds?: number[];
+  orderIds?: number[];  // Added orderIds parameter
   status?: string[] | string;
   limit?: number;
   page?: number;
@@ -16,6 +17,7 @@ interface QueryParams {
 
 export async function getAllQuery({
   tagIds,
+  orderIds,  // Added orderIds parameter
   status,
   limit = 50,
   page = 1,
@@ -27,6 +29,9 @@ export async function getAllQuery({
     const where: any = {};
     if (tagIds?.length) {
       where.tagId = { in: tagIds };
+    }
+    if (orderIds?.length) {  // Added orderIds condition
+      where.orderId = { in: orderIds };
     }
     if (status) {
       where.status = Array.isArray(status) ? { in: status } : status;
@@ -46,9 +51,10 @@ export async function getAllQuery({
         : Promise.resolve(undefined),
     ]);
 
+  
     logger.info(
-      `Found ${totalCount || jobs.length} jobs${
-        tagIds ? ` for tagIds ${tagIds.join(", ")}` : ""
+      `Found ${totalCount || jobs.length} jobs${tagIds ? ` for tagIds ${tagIds.join(", ")}` : ""
+      }${orderIds ? ` for orderIds ${orderIds.join(", ")}` : ""
       }${status ? ` with status ${status}` : ""}`
     );
 
@@ -57,10 +63,12 @@ export async function getAllQuery({
       totalCount: includeTotalCount ? totalCount ?? 0 : 0,
     };
   } catch (error) {
+
     const tagInfo = tagIds?.length ? ` for tagIds ${tagIds.join(", ")}` : "";
+    const orderInfo = orderIds?.length ? ` for orderIds ${orderIds.join(", ")}` : "";
     const statusInfo = status ? ` with status ${status}` : "";
 
-    logger.error(`Failed to get jobs${tagInfo}${statusInfo}`, error);
+    logger.error(`Failed to get jobs${tagInfo}${orderInfo}${statusInfo}`, error);
     throw error;
   }
 }

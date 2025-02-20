@@ -8,7 +8,7 @@ export async function findRuleTagsByProductId(productId: number) {
     });
 
     if (rules.length === 0) {
-      logger.info(`No rules found for product ID ${productId}`);
+      logger.warn(`No rules found for product ID ${productId}`);
       return {
         success: false,
         message: `No rules found for product ID ${productId}`,

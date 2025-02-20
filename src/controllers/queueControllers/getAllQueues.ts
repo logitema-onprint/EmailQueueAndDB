@@ -16,10 +16,13 @@ export const getAllQueues: RequestHandler = async (
     const tagIds = req.query.tagIds
       ? (req.query.tagIds as string).split(",").map(Number)
       : [];
+    const orderIds = req.query.orderIds
+      ? (req.query.orderIds as string).split(",").map(Number)
+      : [];
     const page = parseInt(req.query.page as string) || 1;
     const itemsPerPage = 25;
 
-    logger.info("Params:", tagIds, statuses);
+    logger.info("Params:", tagIds, statuses, orderIds);
 
     if (page < 1) {
       res.status(400).json({
@@ -47,7 +50,6 @@ export const getAllQueues: RequestHandler = async (
       });
     }
 
-    // Convert all statuses to DB statuses
     const dbStatuses = statuses.map((status) =>
       bullToDbStatus(status as JobStatus)
     );
@@ -55,6 +57,7 @@ export const getAllQueues: RequestHandler = async (
     const queryParams = {
       ...(dbStatuses.length > 0 && { status: dbStatuses }),
       ...(tagIds.length > 0 && { tagIds }),
+      ...(orderIds.length > 0 && { orderIds }),
       page,
       limit: itemsPerPage,
       includeTotalCount: true,

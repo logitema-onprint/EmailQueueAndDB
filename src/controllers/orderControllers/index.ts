@@ -5,6 +5,8 @@ import { deleteOrder } from "./deleteOrder";
 import { getAllOrders } from "./getAllOrders";
 import { getFilteredOrders } from "./getFilteredOrders";
 import { getOrder } from "./getOrder";
+import { pauseManyOrders } from "./pasueManyOrders";
+import { resumeManyOrders } from "./resumeManyOrders";
 
 const orderController = {
   createOrder,
@@ -13,7 +15,9 @@ const orderController = {
   deleteOrder,
   getFilteredOrders,
   deleteManyOrders,
-  addTagsToOrders
+  addTagsToOrders,
+  pauseManyOrders,
+  resumeManyOrders
 };
 
 export default orderController;

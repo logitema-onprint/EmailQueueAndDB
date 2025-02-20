@@ -63,6 +63,23 @@ const orderBatchWorker = new Worker(
               await job.updateProgress(progress.percent);
             }
           );
+        case "pauseOrders":
+          return await BatchService.pauseOrderJobs(
+            where.where,
+            totalCount,
+            async (progress) => {
+              await job.updateProgress(progress.percent);
+            }
+          );
+
+        case "resumeOrders":
+          return await BatchService.resumeOrderJobs(
+            where.where,
+            totalCount,
+            async (progress) => {
+              await job.updateProgress(progress.percent);
+            }
+          );
         default:
           throw new Error(`Unsupported operation type: ${type}`);
       }
@@ -85,7 +102,7 @@ orderBatchWorker.on("error", (error) => {
   logger.error("Worker error:", error);
 });
 
-orderBatchWorker.on("completed", (job, result) => {});
+orderBatchWorker.on("completed", (job, result) => { });
 
 orderBatchWorker.on("failed", (job, error) => {
   logger.error(`Job ${job?.id} failed:`, error);

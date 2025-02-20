@@ -5,7 +5,6 @@ import { pauseQueue } from "./pauseQueue";
 import { resumeQueue } from "./resumeQueue";
 import { getAllQueues } from "./getAllQueues";
 import { updateQueueSendTime } from "./updateQueueSendTime";
-import { deleteManyQueues } from "./deleteManyQueues";
 import { pauseQueuesByTag } from "./pauseQueuesByTag";
 import { resumeQueuesByTag } from "./resumeQueuesByTag";
 
@@ -17,7 +16,6 @@ const queueControllers = {
   resumeQueue,
   getAllQueues,
   updateQueueSendTime,
-  deleteManyQueues,
   pauseQueuesByTag,
   resumeQueuesByTag,
 };
