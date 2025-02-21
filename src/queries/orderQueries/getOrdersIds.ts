@@ -5,24 +5,33 @@ import logger from "../../utils/logger";
 export async function getOrderIds(
   where: FilteredOrders["filters"],
   batchSize: number,
-  skip?: number
+  lastProcessedId?: number // Replace skip with lastProcessedId
 ) {
   try {
     const orderIds = await prisma.order.findMany({
-      where: where,
+      where: {
+        AND: [
+          where,
+      
+          lastProcessedId ? { id: { gt: lastProcessedId } } : {}
+        ]
+      },
       take: batchSize,
-      select: { id: true },
+      orderBy: {
+        id: 'asc'
+      },
+      select: { id: true }
     });
 
     return {
       success: true,
-      orderIds: orderIds.map((order) => order.id),
+      orderIds: orderIds.map((order) => order.id)
     };
   } catch (error) {
     logger.error("Failed to get orders by Id", error);
     return {
       success: false,
-      error: `Failed to get  orders by Ids ${error}`,
+      error: `Failed to get orders by Ids ${error}`,
       jobIds: [],
     };
   }

@@ -133,23 +133,22 @@ export class BatchService {
         const batchTimes: number[] = [];
 
         logger.info(`Starting batch tag addition. Total batches: ${totalBatches}`);
-
+        let lastProcessedId = 0;
         for (let batch = 0; batch < totalBatches; batch++) {
             const batchStartTime = Date.now();
             logger.info(`Processing batch ${batch + 1} of ${totalBatches}`);
-            const skip = batch * this.BATCH_SIZE;
             const ordersResult = await orderQueries.getOrderIds(
                 where,
                 this.BATCH_SIZE,
-                skip
+                lastProcessedId
             );
 
             logger.info(`Batch ${batch + 1} query result:`, {
                 success: ordersResult.success,
                 orderIdsLength: ordersResult.orderIds?.length,
-                firstFewIds: ordersResult.orderIds?.slice(0, 5), 
+                firstFewIds: ordersResult.orderIds?.slice(0, 5),
                 batchSize: this.BATCH_SIZE,
-                skip: skip
+
             });
 
 
@@ -160,6 +159,7 @@ export class BatchService {
             const queueResult = await QueueService.createQueues(ordersResult.orderIds, tags);
             totalProcessedOrders += ordersResult.orderIds.length;
             totalJobsCreated += queueResult.data?.length ?? 0;
+            lastProcessedId = ordersResult.orderIds[ordersResult.orderIds.length - 1];
 
             const batchDuration = Date.now() - batchStartTime;
             batchTimes.push(batchDuration);
@@ -213,13 +213,15 @@ export class BatchService {
         const uniqueOrderIds = new Set<number>();
 
         logger.info(`Starting batch pause jobs. Total batches: ${totalBatches}`);
-
+        let lastProcessedId = 0;
         for (let batch = 0; batch < totalBatches; batch++) {
             const batchStartTime = Date.now();
             logger.info(`Processing batch ${batch + 1} of ${totalBatches}`);
+
             const ordersResult = await orderQueries.getOrderIds(
                 where,
                 this.BATCH_SIZE,
+                lastProcessedId
             );
             logger.info(`Batch ${batch + 1} received orders:`, ordersResult.orderIds?.length);
             logger.info(`Batch ${batch + 1} query result:`, {
@@ -233,6 +235,7 @@ export class BatchService {
                 logger.warn(`No orders found in batch ${batch + 1}`);
                 break;
             }
+            lastProcessedId = ordersResult.orderIds[ordersResult.orderIds.length - 1];
 
             const pauseResult = await QueueService.pauseOrders(ordersResult.orderIds);
             totalProcessedOrders += ordersResult.orderIds.length;
@@ -293,20 +296,29 @@ export class BatchService {
         const batchTimes: number[] = [];
         const uniqueOrderIds = new Set<number>();
         logger.info(`Starting batch resume jobs. Total batches: ${totalBatches}`);
-
+        let lastProcessedId = 0;
         for (let batch = 0; batch < totalBatches; batch++) {
             const batchStartTime = Date.now();
             logger.info(`Processing batch ${batch + 1} of ${totalBatches}`);
             const ordersResult = await orderQueries.getOrderIds(
                 where,
                 this.BATCH_SIZE,
-       
+                lastProcessedId
             );
+
+            logger.info(`Batch ${batch + 1} query result:`, {
+                success: ordersResult.success,
+                orderIdsLength: ordersResult.orderIds?.length,
+                firstFewIds: ordersResult.orderIds?.slice(0, 5),  // Log first 5 IDs for debugging
+                batchSize: this.BATCH_SIZE
+            });
 
             if (!ordersResult.success || !ordersResult.orderIds?.length) {
                 logger.warn(`No orders found in batch ${batch + 1}`);
                 break;
             }
+            lastProcessedId = ordersResult.orderIds[ordersResult.orderIds.length - 1];
+
 
             const resumeResult = await QueueService.resumeOrders(ordersResult.orderIds);
             totalJobsFound += resumeResult.totalJobsFound;
