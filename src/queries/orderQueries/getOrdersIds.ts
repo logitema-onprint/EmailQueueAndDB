@@ -11,7 +11,6 @@ export async function getOrderIds(
     const orderIds = await prisma.order.findMany({
       where: where,
       take: batchSize,
-      skip: skip,
       select: { id: true },
     });
 

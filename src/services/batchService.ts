@@ -217,7 +217,6 @@ export class BatchService {
         for (let batch = 0; batch < totalBatches; batch++) {
             const batchStartTime = Date.now();
             logger.info(`Processing batch ${batch + 1} of ${totalBatches}`);
-
             const ordersResult = await orderQueries.getOrderIds(
                 where,
                 this.BATCH_SIZE,
@@ -301,7 +300,7 @@ export class BatchService {
             const ordersResult = await orderQueries.getOrderIds(
                 where,
                 this.BATCH_SIZE,
-
+       
             );
 
             if (!ordersResult.success || !ordersResult.orderIds?.length) {
