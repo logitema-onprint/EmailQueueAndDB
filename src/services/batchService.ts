@@ -12,11 +12,17 @@ interface BatchResult {
     batchTimes: number[];
     averageBatchTime: number;
 }
+interface BatchPauseResumeResult extends BatchTagResult {
+    totalJobsFound: number;
+    totalJobsProcessed: number;
+    totalJobsPaused?: number;
+    totalJobsResumed?: number;
+}
 
 interface BatchTagResult {
     success: boolean;
     totalProcessedOrders: number;
-    totalJobsCreated: number;
+    totalJobsCreated?: number;
     totalTime: number;
     batchTimes: number[];
     averageBatchTime: number;
@@ -206,10 +212,16 @@ export class BatchService {
         onProgress?: (progress: BatchProgress) => Promise<void>
     ): Promise<BatchTagResult> {
         const startTime = Date.now();
-        let totalProcessedOrders = 0;
-        const failedOrders: { orderId: number; error: string }[] = [];
+
+
         const totalBatches = Math.ceil(totalCount / this.BATCH_SIZE);
         const batchTimes: number[] = [];
+
+        let totalProcessedOrders = 0;
+        let totalJobsFound = 0;
+        let totalJobsProcessed = 0;
+        let totalJobsPaused = 0;
+        const failedOrders: { orderId: number; error: string }[] = [];
 
         const uniqueOrderIds = new Set<number>();
 
@@ -218,13 +230,18 @@ export class BatchService {
         for (let batch = 0; batch < totalBatches; batch++) {
             const batchStartTime = Date.now();
             logger.info(`Processing batch ${batch + 1} of ${totalBatches}`);
-            const skip = batch * this.BATCH_SIZE;
+
             const ordersResult = await orderQueries.getOrderIds(
                 where,
                 this.BATCH_SIZE,
-                skip
             );
             logger.info(`Batch ${batch + 1} received orders:`, ordersResult.orderIds?.length);
+            logger.info(`Batch ${batch + 1} query result:`, {
+                success: ordersResult.success,
+                orderIdsLength: ordersResult.orderIds?.length,
+                firstFewIds: ordersResult.orderIds?.slice(0, 5),  // Log first 5 IDs for debugging
+                batchSize: this.BATCH_SIZE
+            });
 
             if (!ordersResult.success || !ordersResult.orderIds?.length) {
                 logger.warn(`No orders found in batch ${batch + 1}`);
@@ -232,7 +249,12 @@ export class BatchService {
             }
 
             const pauseResult = await QueueService.pauseOrders(ordersResult.orderIds);
-            totalProcessedOrders += pauseResult.successCount;
+            totalProcessedOrders += ordersResult.orderIds.length;
+            totalJobsFound += pauseResult.totalJobsFound;
+            totalJobsProcessed += pauseResult.totalJobsProcessed;
+            totalJobsPaused += pauseResult.totalJobsPaused;
+
+
 
             const batchDuration = Date.now() - batchStartTime;
             batchTimes.push(batchDuration);
@@ -251,10 +273,12 @@ export class BatchService {
             }
         }
 
-        const result: BatchTagResult = {
+        const result: BatchPauseResumeResult = {
             success: failedOrders.length === 0,
             totalProcessedOrders,
-            totalJobsCreated: 0,
+            totalJobsFound,
+            totalJobsProcessed,
+            totalJobsPaused,
             failedOrders,
             totalTime: Date.now() - startTime,
             batchTimes,
@@ -272,21 +296,25 @@ export class BatchService {
         totalCount: number,
         onProgress?: (progress: BatchProgress) => Promise<void>
     ): Promise<BatchTagResult> {
+
         const startTime = Date.now();
         let totalProcessedOrders = 0;
+        let totalJobsFound = 0;
+        let totalJobsProcessed = 0;
+        let totalJobsResumed = 0;
         const failedOrders: { orderId: number; error: string }[] = [];
         const totalBatches = Math.ceil(totalCount / this.BATCH_SIZE);
         const batchTimes: number[] = [];
-
+        const uniqueOrderIds = new Set<number>();
         logger.info(`Starting batch resume jobs. Total batches: ${totalBatches}`);
 
         for (let batch = 0; batch < totalBatches; batch++) {
             const batchStartTime = Date.now();
             logger.info(`Processing batch ${batch + 1} of ${totalBatches}`);
-
             const ordersResult = await orderQueries.getOrderIds(
                 where,
-                this.BATCH_SIZE
+                this.BATCH_SIZE,
+
             );
 
             if (!ordersResult.success || !ordersResult.orderIds?.length) {
@@ -294,21 +322,18 @@ export class BatchService {
                 break;
             }
 
-
             const resumeResult = await QueueService.resumeOrders(ordersResult.orderIds);
+            totalJobsFound += resumeResult.totalJobsFound;
+            totalJobsProcessed += resumeResult.totalJobsProcessed;
+            totalJobsResumed += resumeResult.totalJobsResumed;
+            totalProcessedOrders += resumeResult.successCount;
 
 
-
-
-
-
-
-
-
+            logger.success(
+                `Batch ${batch + 1} completed. Resumed ${resumeResult.successCount} orders`
+            );
             const batchDuration = Date.now() - batchStartTime;
             batchTimes.push(batchDuration);
-
-
 
             if (onProgress) {
                 await onProgress({
@@ -318,11 +343,13 @@ export class BatchService {
                 });
             }
         }
-
-        const result: BatchTagResult = {
+        logger.info(`Total unique orders processed: ${uniqueOrderIds.size}`);
+        const result: BatchPauseResumeResult = {
             success: failedOrders.length === 0,
             totalProcessedOrders,
-            totalJobsCreated: 0,
+            totalJobsFound,
+            totalJobsProcessed,
+            totalJobsResumed,
             failedOrders,
             totalTime: Date.now() - startTime,
             batchTimes,
@@ -331,7 +358,6 @@ export class BatchService {
                     ? batchTimes.reduce((a, b) => a + b, 0) / batchTimes.length
                     : 0,
         };
-
         logger.success(`Batch resume completed:`, result);
         return result;
     }

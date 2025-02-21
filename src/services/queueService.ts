@@ -102,7 +102,6 @@ export class QueueService {
     }
     const now = Date.now();
     const processAt = job.timestamp + (job.opts.delay ?? 0);
-    logger.info(processAt);
     const timeLeft = processAt - now;
 
     return timeLeft > 0 ? timeLeft : 0;
@@ -177,21 +176,21 @@ export class QueueService {
       throw new Error("No order IDs provided");
     }
 
-
-
     const queryParams = {
       status: "QUEUED",
       orderIds: orderIds,
       includeTotalCount: true,
     };
 
-
-
     const { jobs } = await queuesQueries.getAllQuery(queryParams);
+    const totalJobsFound = jobs.length;
+    let totalJobsProcessed = 0;
+    let totalJobsPaused = 0;
 
     const results = await Promise.all(
       jobs.map(async (queueItem: Job) => {
         try {
+          totalJobsProcessed++;
           const job = await EmailQueue.getJob(queueItem.id);
 
           if (!job) {
@@ -226,6 +225,7 @@ export class QueueService {
             status: "PAUSED",
           });
 
+          totalJobsPaused++;
           return {
             jobId: queueItem.id,
             success: true,
@@ -247,7 +247,10 @@ export class QueueService {
     return {
       successCount,
       failureCount,
-      message: `Successfully paused ${successCount} jobs, ${failureCount} failed`,
+      totalJobsFound,
+      totalJobsProcessed,
+      totalJobsPaused,
+      message: `Found ${totalJobsFound} jobs, processed ${totalJobsProcessed}, successfully paused ${totalJobsPaused} jobs, ${failureCount} failed`,
     };
   }
 
@@ -262,12 +265,18 @@ export class QueueService {
     };
 
     const { jobs } = await queuesQueries.getAllQuery(queryParams);
+    const totalJobsFound = jobs.length;
+    let totalJobsProcessed = 0;
+    let totalJobsResumed = 0;
 
     if (jobs.length === 0) {
       logger.info("No paused jobs found for the provided orders");
       return {
         successCount: 0,
         failureCount: 0,
+        totalJobsFound: 0,
+        totalJobsProcessed: 0,
+        totalJobsResumed: 0,
         message: "No paused jobs found for the provided orders",
       };
     }
@@ -275,6 +284,7 @@ export class QueueService {
     const results = await Promise.all(
       jobs.map(async (queueItem: Job) => {
         try {
+          totalJobsProcessed++;
           const pausedJob = await PausedQueue.getJob(queueItem.id);
 
           if (!pausedJob) {
@@ -311,6 +321,7 @@ export class QueueService {
             status: "QUEUED",
           });
 
+          totalJobsResumed++;
           return {
             jobId: queueItem.id,
             success: true,
@@ -332,7 +343,10 @@ export class QueueService {
     return {
       successCount,
       failureCount,
-      message: `Successfully resumed ${successCount} jobs, ${failureCount} failed`,
+      totalJobsFound,
+      totalJobsProcessed,
+      totalJobsResumed,
+      message: `Found ${totalJobsFound} jobs, processed ${totalJobsProcessed}, successfully resumed ${totalJobsResumed} jobs, ${failureCount} failed`,
     };
   }
 }
