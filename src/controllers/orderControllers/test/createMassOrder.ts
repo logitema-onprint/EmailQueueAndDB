@@ -10,8 +10,8 @@ export const createMassOrders: RequestHandler = async (
     res: Response
 ) => {
     try {
-        const count = 1000;
-        const batchSize = 300;
+        const count = 2000;
+        const batchSize = 500;
         const concurrency = 10;
 
         const baseOrder: OrderData = {
@@ -24,7 +24,7 @@ export const createMassOrders: RequestHandler = async (
             city: "Vilnius",
             customerId: "cust123",
             productName: "Business Cards",
-            productId: 30,
+            productId: 1,
             userSurname: "Doe",
             companyName: "TechCorp"
         };
@@ -97,7 +97,7 @@ export const createMassOrders: RequestHandler = async (
             const flatResults = batchResults.flat();
             results.push(...flatResults);
 
-            // Update total created, only counting successful orders
+          s
             totalCreated += flatResults.filter(r => r.success).length;
 
             // Immediate break if we've reached the target

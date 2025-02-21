@@ -12,7 +12,7 @@ export const addTagsToOrders: RequestHandler = async (
   try {
     const { filters, tagIds } = req.body;
 
-    logger.info(req.body);
+  
 
     if (!filters) {
       res.status(400).json({

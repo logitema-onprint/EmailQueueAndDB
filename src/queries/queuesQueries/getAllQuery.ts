@@ -1,8 +1,9 @@
+import { Job } from "@prisma/client";
 import prisma from "../../services/prisma";
 import logger from "../../utils/logger";
 
 interface QueryResult {
-  jobs: any[];
+  jobs: Job[];
   totalCount: number;
 }
 

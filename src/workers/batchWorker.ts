@@ -1,8 +1,8 @@
 import { Worker } from "bullmq";
 import logger from "../utils/logger";
 import { orderQueries } from "../queries/orderQueries";
-import { BatchService } from "../services/batchService";
 import { tagQueries } from "../queries/tagQueries";
+import { BatchServiceOrderScope } from "../services/batchServiceOrderScope";
 
 const orderBatchWorker = new Worker(
   "batch-operation-queue",
@@ -30,7 +30,7 @@ const orderBatchWorker = new Worker(
     try {
       switch (type) {
         case "delete":
-          return await BatchService.deleteOrders(
+          return await BatchServiceOrderScope.deleteOrders(
             where.where,
             totalCount,
             async (progress) => {
@@ -55,7 +55,7 @@ const orderBatchWorker = new Worker(
 
           logger.info(validTags);
 
-          return await BatchService.addTagsToOrders(
+          return await BatchServiceOrderScope.addTagsToOrders(
             where.where,
             totalCount,
             validTags,
@@ -64,7 +64,7 @@ const orderBatchWorker = new Worker(
             }
           );
         case "pauseOrders":
-          return await BatchService.pauseOrderJobs(
+          return await BatchServiceOrderScope.pauseOrderJobs(
             where.where,
             totalCount,
             async (progress) => {
@@ -73,7 +73,15 @@ const orderBatchWorker = new Worker(
           );
 
         case "resumeOrders":
-          return await BatchService.resumeOrderJobs(
+          return await BatchServiceOrderScope.resumeOrderJobs(
+            where.where,
+            totalCount,
+            async (progress) => {
+              await job.updateProgress(progress.percent);
+            }
+          );
+        case "inactiveOrders":
+          return await BatchServiceOrderScope.makeInactiveOrderJobs(
             where.where,
             totalCount,
             async (progress) => {
@@ -102,7 +110,7 @@ orderBatchWorker.on("error", (error) => {
   logger.error("Worker error:", error);
 });
 
-orderBatchWorker.on("completed", (job, result) => { });
+orderBatchWorker.on("completed", (job, result) => {});
 
 orderBatchWorker.on("failed", (job, error) => {
   logger.error(`Job ${job?.id} failed:`, error);

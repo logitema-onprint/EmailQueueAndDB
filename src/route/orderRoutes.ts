@@ -16,8 +16,9 @@ export const orderRoutes = async (server: Express) => {
 
   server.post("/api/order/test", testOrderControllers.createMassOrders);
 
-  server.post('/api/orders/pause', orderController.pauseManyOrders)
-  server.post('/api/orders/resume', orderController.resumeManyOrders)
+  server.post("/api/orders/pause", orderController.pauseManyOrders);
+  server.post("/api/orders/resume", orderController.resumeManyOrders);
+  server.post("/api/orders/inactive", orderController.inactiveManyOrders);
 };
 
 export default router;

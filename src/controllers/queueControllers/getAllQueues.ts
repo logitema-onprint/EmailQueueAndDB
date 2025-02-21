@@ -5,6 +5,8 @@ import logger from "../../utils/logger";
 import { bullToDbStatus } from "../../helpers/bullToDbStatus";
 import { serializeBigInt } from "../../helpers/serializeBigInt";
 
+type ExtendedJobStatus = JobStatus | "inactive";
+
 export const getAllQueues: RequestHandler = async (
   req: Request,
   res: Response
@@ -38,11 +40,14 @@ export const getAllQueues: RequestHandler = async (
       "delayed",
       "waiting",
       "paused",
+      "inactive",
     ] as const;
 
     if (
       statuses.length &&
-      !statuses.every((status) => validStatus.includes(status as JobStatus))
+      !statuses.every((status) =>
+        validStatus.includes(status as ExtendedJobStatus)
+      )
     ) {
       res.status(400).json({
         success: false,
@@ -51,8 +56,10 @@ export const getAllQueues: RequestHandler = async (
     }
 
     const dbStatuses = statuses.map((status) =>
-      bullToDbStatus(status as JobStatus)
+      bullToDbStatus(status as ExtendedJobStatus)
     );
+
+    console.log(dbStatuses);
 
     const queryParams = {
       ...(dbStatuses.length > 0 && { status: dbStatuses }),

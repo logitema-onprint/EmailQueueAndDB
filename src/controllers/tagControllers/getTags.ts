@@ -18,9 +18,8 @@ export const getAllTags: RequestHandler = async (
       });
     }
 
-    // Transform the data to handle BigInt values
     const transformedData = serializeBigInt(query.data);
-    logger.info(query.data?.length)
+    logger.info(query.data?.length);
 
     res.status(200).json({
       success: true,

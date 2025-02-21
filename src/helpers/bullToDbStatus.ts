@@ -5,11 +5,16 @@ const bullToDbStatusMap = {
   delayed: "QUEUED",
   waiting: "PENDING",
   paused: "PAUSED",
+  inactive: "INACTIVE"
 } as const;
 
 type BullStatus = keyof typeof bullToDbStatusMap;
 type DbStatus = (typeof bullToDbStatusMap)[BullStatus];
 
-export function bullToDbStatus(bullStatus: BullStatus): DbStatus {
+type CustomStatus = DbStatus | "INACTIVE";
+
+type ExtendedJobStatus = BullStatus | "inactive";
+
+export function bullToDbStatus(bullStatus: ExtendedJobStatus): CustomStatus {
   return bullToDbStatusMap[bullStatus];
 }

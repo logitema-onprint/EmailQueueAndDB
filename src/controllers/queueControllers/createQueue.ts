@@ -6,12 +6,6 @@ import { queuesQueries } from "../../queries/queuesQueries";
 import { tagQueries } from "../../queries/tagQueries";
 import { JobItem } from "../../queries/queuesQueries/createQuery";
 
-interface TagInput {
-  tagName: string;
-  tagId: number;
-  scheduledFor: bigint;
-}
-
 export const createQueue: RequestHandler = async (
   req: Request,
   res: Response
@@ -52,7 +46,6 @@ export const createQueue: RequestHandler = async (
         }
       );
 
-      // Prepare queue item for database
       const queueItem: JobItem = {
         id: jobId,
         orderId,

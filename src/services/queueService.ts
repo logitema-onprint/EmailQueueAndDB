@@ -1,6 +1,6 @@
-import { Job, Tag } from "@prisma/client";
+import { Job } from "@prisma/client";
 import { queuesQueries } from "../queries/queuesQueries";
-import { EmailJob, EmailQueue } from "../queues/emailQueue";
+import { EmailQueue } from "../queues/emailQueue";
 import { PausedQueue } from "../queues/pausedQueue";
 import logger from "../utils/logger";
 import { v4 as uuidv4 } from "uuid";
@@ -12,6 +12,8 @@ interface Tags {
   tagName: string;
   scheduledFor: bigint;
 }
+
+type TagStatus = "PAUSED" | "QUEUED" | "INACTIVE";
 
 const bigIntToNumber = (value: bigint): number => {
   const num = Number(value);
@@ -28,13 +30,11 @@ export class QueueService {
         throw new Error("Missing required tags");
       }
 
-
       const orderIdArray = Array.isArray(orderIds) ? orderIds : [orderIds];
       const timestamp = new Date().toISOString();
       const createdJobs = [];
 
       for (const orderId of orderIdArray) {
-
         for (const tag of tags) {
           const jobId = uuidv4();
           const delay = bigIntToNumber(tag.scheduledFor);
@@ -79,7 +79,7 @@ export class QueueService {
             queueId: jobId,
             jobId: job.id,
             tag: tag.tagName,
-            orderId
+            orderId,
           });
         }
       }
@@ -89,7 +89,7 @@ export class QueueService {
         message: `Successfully created ${createdJobs.length} queue jobs`,
         data: createdJobs,
         totalJobsCreated: createdJobs.length,
-        successCount: orderIdArray.length
+        successCount: orderIdArray.length,
       };
     } catch (error) {
       logger.error("Failed to create queues", error);
@@ -98,7 +98,7 @@ export class QueueService {
         message: "Failed to create queues",
         error: error instanceof Error ? error.message : "Unknown error",
         totalJobsCreated: 0,
-        successCount: 0
+        successCount: 0,
       };
     }
   }
@@ -122,7 +122,6 @@ export class QueueService {
     if (!job) {
       job = await PausedQueue.getJob(jobId);
     }
-
 
     const item = await queuesQueries.getQuery(jobId);
 
@@ -356,6 +355,82 @@ export class QueueService {
       totalJobsProcessed,
       totalJobsResumed,
       message: `Found ${totalJobsFound} jobs, processed ${totalJobsProcessed}, successfully resumed ${totalJobsResumed} jobs, ${failureCount} failed`,
+    };
+  }
+  static async makeInactiveOrders(orderIds: number[]) {
+    if (!orderIds || orderIds.length === 0) {
+      throw new Error("No order IDs provided");
+    }
+
+    const queryParams = {
+      status: ["PAUSED", "QUEUED"],
+      orderIds: orderIds,
+    };
+
+    const { jobs } = await queuesQueries.getAllQuery(queryParams);
+    const totalJobsFound = jobs.length;
+    let totalJobsProcessed = 0;
+    let totalJobsRemoved = 0;
+    let tagCounts: { [key: number]: number } = {};
+
+    if (jobs.length === 0) {
+      logger.info("No paused or active jobs found for the provided orders");
+      return {
+        successCount: 0,
+        failureCount: 0,
+        totalJobsFound: 0,
+        totalJobsProcessed: 0,
+        totalJobsRemoved: 0,
+        message: "No paused or active jobs found for the provided orders",
+      };
+    }
+
+    const results = await Promise.all(
+      jobs.map(async (queueItem: Job) => {
+        try {
+          totalJobsProcessed++;
+
+          const job =
+            (await PausedQueue.getJob(queueItem.id)) ||
+            (await EmailQueue.getJob(queueItem.id));
+
+          if (job) {
+            const tagId = job.data.tagId;
+            await tagQueries.updateTagCount(tagId, "decrement");
+            await job.remove();
+          }
+
+          await queuesQueries.updateStatusQuery(queueItem.id, {
+            status: "INACTIVE",
+          });
+
+          totalJobsRemoved++;
+          return {
+            jobId: queueItem.id,
+            success: true,
+          };
+        } catch (error) {
+          logger.error(`Failed to remove job ${queueItem.id}:`, error);
+          return {
+            jobId: queueItem.id,
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+          };
+        }
+      })
+    );
+    await tagQueries.updateManyCount(tagCounts, "decrement", totalJobsRemoved);
+
+    const successCount = results.filter((r) => r.success).length;
+    const failureCount = results.filter((r) => !r.success).length;
+
+    return {
+      successCount,
+      failureCount,
+      totalJobsFound,
+      totalJobsProcessed,
+      totalJobsRemoved,
+      message: `Found ${totalJobsFound} jobs, processed ${totalJobsProcessed}, successfully removed ${totalJobsRemoved} jobs, ${failureCount} failed`,
     };
   }
 }
