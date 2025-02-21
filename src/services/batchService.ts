@@ -120,7 +120,7 @@ export class BatchService {
         return result;
     }
     static async addTagsToOrders(
-        where: any,
+        where: FilteredOrders['filters'],
         totalCount: number,
         tags: Tags[],
         onProgress?: (progress: BatchProgress) => Promise<void>
@@ -137,48 +137,35 @@ export class BatchService {
         for (let batch = 0; batch < totalBatches; batch++) {
             const batchStartTime = Date.now();
             logger.info(`Processing batch ${batch + 1} of ${totalBatches}`);
-
-
+            const skip = batch * this.BATCH_SIZE;
             const ordersResult = await orderQueries.getOrderIds(
                 where,
-                this.BATCH_SIZE
+                this.BATCH_SIZE,
+                skip
             );
+
+            logger.info(`Batch ${batch + 1} query result:`, {
+                success: ordersResult.success,
+                orderIdsLength: ordersResult.orderIds?.length,
+                firstFewIds: ordersResult.orderIds?.slice(0, 5), 
+                batchSize: this.BATCH_SIZE,
+                skip: skip
+            });
+
 
             if (!ordersResult.success || !ordersResult.orderIds?.length) {
                 logger.warn(`No orders found in batch ${batch + 1}`);
                 break;
             }
-
-            const batchPromises = ordersResult.orderIds.map(async (orderId) => {
-                const queueResult = await QueueService.createQueues(orderId, tags);
-
-                if (queueResult.success) {
-                    return { success: true, jobsCreated: queueResult.data?.length ?? 0 };
-                }
-
-                failedOrders.push({
-                    orderId,
-                    error: queueResult.error || "Unknown error",
-                });
-                return { success: false, jobsCreated: 0 };
-            });
-
-            const batchResults = await Promise.all(batchPromises);
-
-            const batchSuccesses = batchResults.filter((result) => result.success);
-            totalProcessedOrders += batchSuccesses.length;
-            totalJobsCreated += batchResults.reduce(
-                (sum, result) => sum + result.jobsCreated,
-                0
-            );
-
+            const queueResult = await QueueService.createQueues(ordersResult.orderIds, tags);
+            totalProcessedOrders += ordersResult.orderIds.length;
+            totalJobsCreated += queueResult.data?.length ?? 0;
 
             const batchDuration = Date.now() - batchStartTime;
             batchTimes.push(batchDuration);
 
             logger.success(
-                `Batch ${batch + 1} completed. Processed ${batchSuccesses.length
-                } orders`
+                `Batch ${batch + 1} completed. Processed ${ordersResult.orderIds.length} orders`
             );
 
             if (onProgress) {

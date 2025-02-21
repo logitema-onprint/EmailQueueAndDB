@@ -74,7 +74,7 @@ export const createMassOrders: RequestHandler = async (
                                 }
 
                                 const jobs = await QueueService.createQueues(
-                                    orderResult.data?.id,
+                                    orderResult.data?.id as number,
                                     tags.data.tags
                                 );
 

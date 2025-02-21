@@ -68,7 +68,7 @@ export const createOrder: RequestHandler = async (
     }
 
     const jobs = await QueueService.createQueues(
-      order.data?.id,
+      order.data?.id as number,
       tags.data.tags
     );
 

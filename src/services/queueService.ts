@@ -22,67 +22,74 @@ const bigIntToNumber = (value: bigint): number => {
 };
 
 export class QueueService {
-  static async createQueues(orderId: number | undefined, tags: Tags[]) {
+  static async createQueues(orderIds: number | number[], tags: Tags[]) {
     try {
       if (!tags || tags.length === 0) {
         throw new Error("Missing required tags");
       }
 
+
+      const orderIdArray = Array.isArray(orderIds) ? orderIds : [orderIds];
       const timestamp = new Date().toISOString();
       const createdJobs = [];
 
-      for (const tag of tags) {
-        const jobId = uuidv4();
+      for (const orderId of orderIdArray) {
 
-        const delay = bigIntToNumber(tag.scheduledFor);
+        for (const tag of tags) {
+          const jobId = uuidv4();
+          const delay = bigIntToNumber(tag.scheduledFor);
 
-        const job = await EmailQueue.add(
-          "email-job",
-          {
-            jobId: jobId,
-            tagName: tag.tagName,
-            tagId: tag.id,
-          },
-          {
-            jobId: jobId,
-            delay: delay, // Now using the converted number
-            attempts: 3,
-          }
-        );
-
-        const queueItem: JobItem = {
-          id: jobId,
-          orderId,
-          tagId: tag.id,
-          tagName: tag.tagName,
-          status: "QUEUED",
-          updatedAt: timestamp,
-          scheduledFor: tag.scheduledFor, // Keep as BigInt for DB
-          processedAt: undefined,
-          error: null,
-        };
-
-        const result = await queuesQueries.createQueue(queueItem);
-        await tagQueries.updateTagCount(tag.id, "increment");
-
-        if (result.error) {
-          await job.remove();
-          throw new Error(
-            `Failed to create queue for tag ${tag.tagName}: ${result.error}`
+          const job = await EmailQueue.add(
+            "email-job",
+            {
+              jobId: jobId,
+              tagName: tag.tagName,
+              tagId: tag.id,
+            },
+            {
+              jobId: jobId,
+              delay: delay,
+              attempts: 3,
+            }
           );
-        }
 
-        createdJobs.push({
-          queueId: jobId,
-          jobId: job.id,
-          tag: tag.tagName,
-        });
+          const queueItem: JobItem = {
+            id: jobId,
+            orderId,
+            tagId: tag.id,
+            tagName: tag.tagName,
+            status: "QUEUED",
+            updatedAt: timestamp,
+            scheduledFor: tag.scheduledFor,
+            processedAt: undefined,
+            error: null,
+          };
+
+          const result = await queuesQueries.createQueue(queueItem);
+          await tagQueries.updateTagCount(tag.id, "increment");
+
+          if (result.error) {
+            await job.remove();
+            throw new Error(
+              `Failed to create queue for tag ${tag.tagName}: ${result.error}`
+            );
+          }
+
+          createdJobs.push({
+            queueId: jobId,
+            jobId: job.id,
+            tag: tag.tagName,
+            orderId
+          });
+        }
       }
 
       return {
         success: true,
         message: `Successfully created ${createdJobs.length} queue jobs`,
         data: createdJobs,
+        totalJobsCreated: createdJobs.length,
+        successCount: orderIdArray.length
       };
     } catch (error) {
       logger.error("Failed to create queues", error);
@@ -90,6 +97,8 @@ export class QueueService {
         success: false,
         message: "Failed to create queues",
         error: error instanceof Error ? error.message : "Unknown error",
+        totalJobsCreated: 0,
+        successCount: 0
       };
     }
   }
