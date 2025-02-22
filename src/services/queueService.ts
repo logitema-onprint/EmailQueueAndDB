@@ -31,6 +31,10 @@ export class QueueService {
         throw new Error("Missing required tags");
       }
 
+      logger.info("fired");
+
+      logger.info(orderIds, tags);
+
       const orderIdArray = Array.isArray(orderIds) ? orderIds : [orderIds];
       const timestamp = new Date().toISOString();
       const createdJobs = [];
@@ -391,7 +395,7 @@ export class QueueService {
       message: `Found ${totalJobsFound} jobs, processed ${totalJobsProcessed}, successfully resumed ${totalJobsResumed} jobs, ${failureCount} failed`,
     };
   }
-  static async makeInactiveOrders(orderIds: number[]) {
+  static async makeInactiveOrders(orderIds: number[], tagIds?: number[]) {
     if (!orderIds || orderIds.length === 0) {
       throw new Error("No order IDs provided");
     }
@@ -399,6 +403,7 @@ export class QueueService {
     const queryParams = {
       status: ["PAUSED", "QUEUED"],
       orderIds: orderIds,
+      tagIds,
     };
 
     const { jobs } = await queuesQueries.getAllQuery(queryParams);
@@ -465,8 +470,8 @@ export class QueueService {
       message: `Found ${totalJobsFound} jobs, processed ${totalJobsProcessed}, successfully removed ${totalJobsRemoved} jobs, ${failureCount} failed`,
     };
   }
-  static async removeTagsFromOrders(orderIds: number[], tagIds: number[]) {
-    if (!orderIds || !tagIds) {
+  static async removeTagsFromOrders(orderIds: number[], tagIds?: number[]) {
+    if (!orderIds || !orderIds.length) {
       throw new Error("No order IDs and tags provided");
     }
 
@@ -484,6 +489,7 @@ export class QueueService {
     if (jobs.length === 0) {
       logger.info("No jobs found for the provided orders and tags");
       return {
+        success: true,
         successCount: 0,
         failureCount: 0,
         totalJobsFound: 0,
@@ -533,6 +539,7 @@ export class QueueService {
     const failureCount = results.filter((r) => !r.success).length;
 
     return {
+      success: true,
       successCount,
       failureCount,
       totalJobsFound,

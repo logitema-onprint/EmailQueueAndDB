@@ -1,16 +1,22 @@
-import { addTagsToOrders } from "./addTagsToFilteredOrders";
+import { addTagsToOrders } from "./batch/addTagsToFilteredOrders";
 import { createOrder } from "./createOrder";
-import { deleteManyOrders } from "./deleteManyOrders";
+import { deleteManyOrders } from "./batch/deleteManyOrders";
 import { deleteOrder } from "./deleteOrder";
 import { getAllOrders } from "./getAllOrders";
-import { getFilteredOrders } from "./getFilteredOrders";
 import { getOrder } from "./getOrder";
 import { inactiveManyOrders } from "./inactiveManyOrders";
-import { pauseManyOrders } from "./pasueManyOrders";
-import { pauseTagsToFilteredOrders } from "./pauseTagsToFilteredOrders";
-import { removeTagsFromOrders } from "./removeTagsToFilteredOrders";
-import { resumeManyOrders } from "./resumeManyOrders";
-import { resumeTagsToFilteredOrders } from "./resumeTagsToFilteredOrders";
+import { pauseManyOrders } from "./batch/pasueManyOrders";
+import { pauseTagsToFilteredOrders } from "./batch/pauseTagsToFilteredOrders";
+import { removeTagsFromOrders } from "./batch/removeTagsToFilteredOrders";
+import { resumeManyOrders } from "./batch/resumeManyOrders";
+import { resumeTagsToFilteredOrders } from "./batch/resumeTagsToFilteredOrders";
+import { getFilteredOrders } from "./getFilteredOrders";
+import { addTags } from "./tagScope/addTags";
+import { removeTags } from "./tagScope/removeTags";
+import { pauseTags } from "./tagScope/pauseTags";
+import { resumeTags } from "./tagScope/resumeTags";
+import { inactiveTags } from "./tagScope/inactiveTags";
+import { deleteSelectedOrders } from "./orderScope/deleteOrders";
 
 const orderController = {
   createOrder,
@@ -26,6 +32,12 @@ const orderController = {
   removeTagsFromOrders,
   pauseTagsToFilteredOrders,
   resumeTagsToFilteredOrders,
+  addTags,
+  removeTags,
+  pauseTags,
+  resumeTags,
+  inactiveTags,
+  deleteSelectedOrders
 };
 
 export default orderController;

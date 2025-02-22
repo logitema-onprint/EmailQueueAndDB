@@ -27,7 +27,7 @@ const orderBatchWorker = new Worker(
     logger.info(`Total count: ${totalCount}`);
 
     let validTags = [];
-    let validTagIds: Tag['id'][] = [];
+    let validTagIds: Tag["id"][] = [];
 
     if (tagIds) {
       const tagPromises = tagIds.map((tagId: number) =>
@@ -81,7 +81,7 @@ const orderBatchWorker = new Worker(
               await job.updateProgress(progress.percent);
             }
           );
-          case "pause-tags":
+        case "pause-tags":
           return await BatchServiceOrderTagScope.pauseSelectedTags(
             where.where,
             totalCount,
@@ -90,7 +90,7 @@ const orderBatchWorker = new Worker(
               await job.updateProgress(progress.percent);
             }
           );
-          case "resume-tags":
+        case "resume-tags":
           return await BatchServiceOrderTagScope.resumeSelectedTags(
             where.where,
             totalCount,

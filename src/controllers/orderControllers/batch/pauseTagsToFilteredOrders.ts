@@ -1,11 +1,11 @@
 import { RequestHandler, Response, Request } from "express";
-import { orderQueries } from "../../queries/orderQueries";
-import logger from "../../utils/logger";
-import { QueueService } from "../../services/queueService";
-import { BatchQueue } from "../../queues/batchQueue";
+import { orderQueries } from "../../../queries/orderQueries";
+import logger from "../../../utils/logger";
+import { QueueService } from "../../../services/queueService";
+import { BatchQueue } from "../../../queues/batchQueue";
 import { Tag } from "@prisma/client";
 
-export const resumeTagsToFilteredOrders: RequestHandler = async (
+export const pauseTagsToFilteredOrders: RequestHandler = async (
   req: Request,
   res: Response
 ) => {
@@ -29,9 +29,9 @@ export const resumeTagsToFilteredOrders: RequestHandler = async (
     }
 
     const job = await BatchQueue.add(
-      "resume-tags",
+      "pause-tags",
       {
-        type: "resume-tags",
+        type: "pause-tags",
         filters,
         tagIds,
       },
@@ -43,14 +43,14 @@ export const resumeTagsToFilteredOrders: RequestHandler = async (
 
     res.status(202).json({
       success: true,
-      message: "Tag resume process started",
+      message: "Tag pause process started",
       jobId: job.id,
     });
   } catch (error) {
-    logger.error("Failed to queue tag resume", error);
+    logger.error("Failed to queue tag pause", error);
     res.status(500).json({
       success: false,
-      message: "Failed to queue tag resume",
+      message: "Failed to queue tag pause",
     });
   }
 };

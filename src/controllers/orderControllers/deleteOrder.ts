@@ -22,6 +22,7 @@ export const deleteOrder: RequestHandler = async (
       select: { id: true },
     });
     const jobIds = jobs.map((job) => job.id);
+
     await QueueService.removeJobsFromQueues(jobIds);
 
     const result = await orderQueries.deleteOrder(orderId);
@@ -40,7 +41,7 @@ export const deleteOrder: RequestHandler = async (
 
     if (checkJobs.length === 0) {
       logger.info(
-        `All jobs acciociated with order: ${result.data?.id} deleted `
+        `All jobs: ${jobIds.length}  acciociated with order: ${result.data?.id} deleted `
       );
     }
 

@@ -5,7 +5,7 @@ import logger from "../../utils/logger";
 export async function getOrderIds(
   where: FilteredOrders["filters"],
   batchSize: number,
-  lastProcessedId?: number // Replace skip with lastProcessedId
+  lastProcessedId?: number 
 ) {
   try {
     const orderIds = await prisma.order.findMany({

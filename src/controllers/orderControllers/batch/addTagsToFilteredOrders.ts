@@ -1,8 +1,8 @@
 import { RequestHandler, Response, Request } from "express";
-import { orderQueries } from "../../queries/orderQueries";
-import logger from "../../utils/logger";
-import { QueueService } from "../../services/queueService";
-import { BatchQueue } from "../../queues/batchQueue";
+import { orderQueries } from "../../../queries/orderQueries";
+import logger from "../../../utils/logger";
+import { QueueService } from "../../../services/queueService";
+import { BatchQueue } from "../../../queues/batchQueue";
 import { Tag } from "@prisma/client";
 
 export const addTagsToOrders: RequestHandler = async (

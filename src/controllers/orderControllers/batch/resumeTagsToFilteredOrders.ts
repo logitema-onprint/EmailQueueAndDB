@@ -1,11 +1,11 @@
 import { RequestHandler, Response, Request } from "express";
-import { orderQueries } from "../../queries/orderQueries";
-import logger from "../../utils/logger";
-import { QueueService } from "../../services/queueService";
-import { BatchQueue } from "../../queues/batchQueue";
+import { orderQueries } from "../../../queries/orderQueries";
+import logger from "../../../utils/logger";
+import { QueueService } from "../../../services/queueService";
+import { BatchQueue } from "../../../queues/batchQueue";
 import { Tag } from "@prisma/client";
 
-export const removeTagsFromOrders: RequestHandler = async (
+export const resumeTagsToFilteredOrders: RequestHandler = async (
   req: Request,
   res: Response
 ) => {
@@ -29,9 +29,9 @@ export const removeTagsFromOrders: RequestHandler = async (
     }
 
     const job = await BatchQueue.add(
-      "remove-tags",
+      "resume-tags",
       {
-        type: "remove-tags",
+        type: "resume-tags",
         filters,
         tagIds,
       },
@@ -43,14 +43,14 @@ export const removeTagsFromOrders: RequestHandler = async (
 
     res.status(202).json({
       success: true,
-      message: "Tag removing process started",
+      message: "Tag resume process started",
       jobId: job.id,
     });
   } catch (error) {
-    logger.error("Failed to queue tag removing", error);
+    logger.error("Failed to queue tag resume", error);
     res.status(500).json({
       success: false,
-      message: "Failed to queue tag removing",
+      message: "Failed to queue tag resume",
     });
   }
 };
