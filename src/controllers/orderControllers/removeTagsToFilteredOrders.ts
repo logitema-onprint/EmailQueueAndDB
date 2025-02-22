@@ -5,14 +5,12 @@ import { QueueService } from "../../services/queueService";
 import { BatchQueue } from "../../queues/batchQueue";
 import { Tag } from "@prisma/client";
 
-export const addTagsToOrders: RequestHandler = async (
+export const removeTagsFromOrders: RequestHandler = async (
   req: Request,
   res: Response
 ) => {
   try {
     const { filters, tagIds } = req.body;
-
-  
 
     if (!filters) {
       res.status(400).json({
@@ -31,9 +29,9 @@ export const addTagsToOrders: RequestHandler = async (
     }
 
     const job = await BatchQueue.add(
-      "add-tags",
+      "remove-tags",
       {
-        type: "add-tags",
+        type: "remove-tags",
         filters,
         tagIds,
       },
@@ -45,14 +43,14 @@ export const addTagsToOrders: RequestHandler = async (
 
     res.status(202).json({
       success: true,
-      message: "Tag addition process started",
+      message: "Tag removing process started",
       jobId: job.id,
     });
   } catch (error) {
-    logger.error("Failed to queue tag addition", error);
+    logger.error("Failed to queue tag removing", error);
     res.status(500).json({
       success: false,
-      message: "Failed to queue tag addition",
+      message: "Failed to queue tag removing",
     });
   }
 };

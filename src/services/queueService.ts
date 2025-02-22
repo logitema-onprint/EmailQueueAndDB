@@ -1,4 +1,4 @@
-import { Job } from "@prisma/client";
+import { Job, Tag } from "@prisma/client";
 import { queuesQueries } from "../queries/queuesQueries";
 import { EmailQueue } from "../queues/emailQueue";
 import { PausedQueue } from "../queues/pausedQueue";
@@ -6,6 +6,7 @@ import logger from "../utils/logger";
 import { v4 as uuidv4 } from "uuid";
 import { JobItem } from "../queries/queuesQueries/createQuery";
 import { tagQueries } from "../queries/tagQueries";
+import { log } from "console";
 
 interface Tags {
   id: number;
@@ -179,7 +180,7 @@ export class QueueService {
       };
     }
   }
-  static async pauseOrders(orderIds: number[]) {
+  static async pauseOrders(orderIds: number[], tagIds?: number[]) {
     if (!orderIds || orderIds.length === 0) {
       throw new Error("No order IDs provided");
     }
@@ -187,6 +188,7 @@ export class QueueService {
     const queryParams = {
       status: "QUEUED",
       orderIds: orderIds,
+      tagIds: tagIds,
       includeTotalCount: true,
     };
 
@@ -262,13 +264,14 @@ export class QueueService {
     };
   }
 
-  static async resumeOrders(orderIds: number[]) {
+  static async resumeOrders(orderIds: number[], tagIds?: number[]) {
     if (!orderIds || orderIds.length === 0) {
       throw new Error("No order IDs provided");
     }
 
     const queryParams = {
       status: "PAUSED",
+      tagIds: tagIds,
       orderIds: orderIds,
     };
 
@@ -371,7 +374,6 @@ export class QueueService {
     const totalJobsFound = jobs.length;
     let totalJobsProcessed = 0;
     let totalJobsRemoved = 0;
-    let tagCounts: { [key: number]: number } = {};
 
     if (jobs.length === 0) {
       logger.info("No paused or active jobs found for the provided orders");
@@ -419,7 +421,82 @@ export class QueueService {
         }
       })
     );
-    await tagQueries.updateManyCount(tagCounts, "decrement", totalJobsRemoved);
+
+    const successCount = results.filter((r) => r.success).length;
+    const failureCount = results.filter((r) => !r.success).length;
+
+    return {
+      successCount,
+      failureCount,
+      totalJobsFound,
+      totalJobsProcessed,
+      totalJobsRemoved,
+      message: `Found ${totalJobsFound} jobs, processed ${totalJobsProcessed}, successfully removed ${totalJobsRemoved} jobs, ${failureCount} failed`,
+    };
+  }
+  static async removeTagsFromOrders(orderIds: number[], tagIds: number[]) {
+    if (!orderIds || !tagIds) {
+      throw new Error("No order IDs and tags provided");
+    }
+
+    const queryParams = {
+      orderIds,
+      tagIds,
+      includeTotalCount: true,
+    };
+
+    const { jobs } = await queuesQueries.getAllQuery(queryParams);
+    const totalJobsFound = jobs.length;
+    let totalJobsProcessed = 0;
+    let totalJobsRemoved = 0;
+
+    if (jobs.length === 0) {
+      logger.info("No jobs found for the provided orders and tags");
+      return {
+        successCount: 0,
+        failureCount: 0,
+        totalJobsFound: 0,
+        totalJobsProcessed: 0,
+        totalJobsRemoved: 0,
+        message: "No jobs found for the provided orders and tags",
+      };
+    }
+
+    const results = await Promise.all(
+      jobs.map(async (queueItem: Job) => {
+        try {
+          totalJobsProcessed++;
+
+          const job =
+            (await PausedQueue.getJob(queueItem.id)) ||
+            (await EmailQueue.getJob(queueItem.id));
+
+          if (job) {
+            const tagId = job.data.tagId;
+            await tagQueries.updateTagCount(tagId, "decrement");
+            await job.remove();
+          }
+
+          totalJobsRemoved++;
+          return {
+            jobId: queueItem.id,
+            success: true,
+          };
+        } catch (error) {
+          logger.error(`Failed to remove job ${queueItem.id}:`, error);
+          return {
+            jobId: queueItem.id,
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+          };
+        }
+      })
+    );
+
+    await queuesQueries.deleteManyJobs({
+      orderIds,
+      tagIds,
+    });
 
     const successCount = results.filter((r) => r.success).length;
     const failureCount = results.filter((r) => !r.success).length;

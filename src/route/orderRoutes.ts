@@ -13,6 +13,9 @@ export const orderRoutes = async (server: Express) => {
 
   server.post("/api/order/filter", orderController.getFilteredOrders);
   server.post("/api/orders/tags/filter", orderController.addTagsToOrders);
+  server.post("/api/orders/remove/tags", orderController.removeTagsFromOrders);
+  server.post('/api/orders/pause/tags', orderController.pauseTagsToFilteredOrders)
+  server.post('/api/orders/resume/tags', orderController.resumeTagsToFilteredOrders)
 
   server.post("/api/order/test", testOrderControllers.createMassOrders);
 

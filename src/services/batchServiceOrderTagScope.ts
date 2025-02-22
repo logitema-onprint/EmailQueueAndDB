@@ -1,98 +1,34 @@
-import { QueueService } from "./queueService";
+import { Tag } from "@prisma/client";
 import { orderQueries } from "../queries/orderQueries";
-import logger from "../utils/logger";
+import { BatchPauseResumeResult, BatchProgress, BatchResult, Tags } from "../types/batchTypes";
 import { FilteredOrders } from "../types/orderApi";
 import {
-  BatchResult,
-  BatchTagResult,
-  BatchPauseResumeResult,
-  BatchProgress,
-  Tags,
-} from "../types/batchTypes";
-import {
   initializeBatchProcess,
-  processOrderBatch,
-  calculateBatchMetrics,
-  updateProgress,
   recordBatchTime,
+  updateProgress,
+  calculateBatchMetrics,
+  processOrderBatch,
 } from "../utils/batchUtils";
+import logger from "../utils/logger";
+import { QueueService } from "./queueService";
 
-export class BatchServiceOrderScope {
+export class BatchServiceOrderTagScope {
   private static readonly BATCH_SIZE = 100;
 
-  static async deleteOrders(
+  static async removeSelectedTags(
     where: FilteredOrders["filters"],
     totalCount: FilteredOrders["pageSize"],
+    tagIds: number[],
     onProgress?: (progress: BatchProgress) => Promise<void>
   ): Promise<BatchResult> {
     const common = initializeBatchProcess(totalCount, this.BATCH_SIZE);
-    let totalDeletedOrders = 0;
-    let allJobsIds: string[] = [];
+    let totalJobsFound = 0;
+    let totalJobsProcessed = 0;
+    let totalJobsRemoved = 0;
 
     for (let batch = 0; batch < common.totalBatches; batch++) {
       const batchStartTime = Date.now();
       logger.info(`Processing batch ${batch + 1} of ${common.totalBatches}`);
-
-      const deleteResult = await orderQueries.deleteFiltered(
-        where,
-        this.BATCH_SIZE
-      );
-
-      if (!deleteResult) {
-        throw new Error("Delete result is undefined");
-      }
-
-      if (!deleteResult.success) {
-        throw new Error(deleteResult.error);
-      }
-
-      if (deleteResult.jobIds?.length > 0) {
-        logger.info(`Removing ${deleteResult.jobIds.length} jobs from queues`);
-        await QueueService.removeJobsFromQueues(deleteResult.jobIds);
-      }
-
-      totalDeletedOrders += deleteResult.deletedOrders ?? 0;
-      allJobsIds.push(...(deleteResult.jobIds ?? []));
-
-      recordBatchTime(common.batchTimes, batchStartTime);
-
-      logger.success(
-        `Batch ${batch + 1} completed. Deleted ${
-          deleteResult.deletedOrders
-        } orders`
-      );
-
-      await updateProgress(
-        onProgress,
-        totalDeletedOrders,
-        totalCount,
-        batch,
-        common.totalBatches
-      );
-    }
-
-    const result: BatchResult = {
-      success: true,
-      totalDeletedOrders,
-      totalJobsRemoved: allJobsIds.length,
-      ...calculateBatchMetrics(common.batchTimes, common.startTime),
-    };
-
-    logger.success(`Batch deletion completed:`, result);
-    return result;
-  }
-
-  static async addTagsToOrders(
-    where: FilteredOrders["filters"],
-    totalCount: FilteredOrders["pageSize"],
-    tags: Tags[],
-    onProgress?: (progress: BatchProgress) => Promise<void>
-  ): Promise<BatchTagResult> {
-    const common = initializeBatchProcess(totalCount, this.BATCH_SIZE);
-    let totalJobsCreated = 0;
-
-    for (let batch = 0; batch < common.totalBatches; batch++) {
-      const batchStartTime = Date.now();
 
       const ordersResult = await processOrderBatch(
         where,
@@ -104,21 +40,24 @@ export class BatchServiceOrderScope {
 
       if (!ordersResult) break;
 
-      const queueResult = await QueueService.createQueues(
+      const removeResult = await QueueService.removeTagsFromOrders(
         ordersResult.orderIds,
-        tags
+        tagIds
       );
+
       common.totalProcessedOrders += ordersResult.orderIds.length;
-      totalJobsCreated += queueResult.data?.length ?? 0;
+      totalJobsFound += removeResult.totalJobsFound;
+      totalJobsProcessed += removeResult.totalJobsProcessed;
+      totalJobsRemoved += removeResult.totalJobsRemoved;
       common.lastProcessedId =
         ordersResult.orderIds[ordersResult.orderIds.length - 1];
 
       recordBatchTime(common.batchTimes, batchStartTime);
 
       logger.success(
-        `Batch ${batch + 1} completed. Processed ${
-          ordersResult.orderIds.length
-        } orders`
+        `Batch ${batch + 1} completed. Removed ${
+          removeResult.successCount
+        } jobs`
       );
 
       await updateProgress(
@@ -130,21 +69,23 @@ export class BatchServiceOrderScope {
       );
     }
 
-    const result: BatchTagResult = {
+    const result: BatchResult = {
       success: common.failedOrders.length === 0,
       totalProcessedOrders: common.totalProcessedOrders,
-      totalJobsCreated,
+      totalJobsFound,
+      totalJobsProcessed,
+      totalJobsRemoved,
       failedOrders: common.failedOrders,
       ...calculateBatchMetrics(common.batchTimes, common.startTime),
     };
 
-    logger.success(`Batch tag addition completed:`, result);
+    logger.success(`Batch tag removal completed:`, result);
     return result;
   }
-
-  static async pauseOrderJobs(
+  static async pauseSelectedTags(
     where: FilteredOrders["filters"],
     totalCount: FilteredOrders["pageSize"],
+    tagIds: number[],
     onProgress?: (progress: BatchProgress) => Promise<void>
   ): Promise<BatchPauseResumeResult> {
     const common = initializeBatchProcess(totalCount, this.BATCH_SIZE);
@@ -153,8 +94,8 @@ export class BatchServiceOrderScope {
     let totalJobsPaused = 0;
 
     for (let batch = 0; batch < common.totalBatches; batch++) {
-      logger.success('Fired')
       const batchStartTime = Date.now();
+      logger.info(`Processing batch ${batch + 1} of ${common.totalBatches}`);
 
       const ordersResult = await processOrderBatch(
         where,
@@ -164,11 +105,13 @@ export class BatchServiceOrderScope {
         common.totalBatches
       );
 
-      logger.info(ordersResult?.success)
-
       if (!ordersResult) break;
 
-      const pauseResult = await QueueService.pauseOrders(ordersResult.orderIds);
+      const pauseResult = await QueueService.pauseOrders(
+        ordersResult.orderIds,
+        tagIds
+      );
+
       common.totalProcessedOrders += ordersResult.orderIds.length;
       totalJobsFound += pauseResult.totalJobsFound;
       totalJobsProcessed += pauseResult.totalJobsProcessed;
@@ -179,9 +122,7 @@ export class BatchServiceOrderScope {
       recordBatchTime(common.batchTimes, batchStartTime);
 
       logger.success(
-        `Batch ${batch + 1} completed. Paused ${
-          pauseResult.successCount
-        } orders`
+        `Batch ${batch + 1} completed. Paused ${pauseResult.successCount} jobs`
       );
 
       await updateProgress(
@@ -203,13 +144,14 @@ export class BatchServiceOrderScope {
       ...calculateBatchMetrics(common.batchTimes, common.startTime),
     };
 
-    logger.success(`Batch pause completed:`, result);
+    logger.success(`Batch tag pause completed:`, result);
     return result;
   }
 
-  static async resumeOrderJobs(
+  static async resumeSelectedTags(
     where: FilteredOrders["filters"],
     totalCount: FilteredOrders["pageSize"],
+    tagIds: number[],
     onProgress?: (progress: BatchProgress) => Promise<void>
   ): Promise<BatchPauseResumeResult> {
     const common = initializeBatchProcess(totalCount, this.BATCH_SIZE);
@@ -219,6 +161,7 @@ export class BatchServiceOrderScope {
 
     for (let batch = 0; batch < common.totalBatches; batch++) {
       const batchStartTime = Date.now();
+      logger.info(`Processing batch ${batch + 1} of ${common.totalBatches}`);
 
       const ordersResult = await processOrderBatch(
         where,
@@ -231,8 +174,10 @@ export class BatchServiceOrderScope {
       if (!ordersResult) break;
 
       const resumeResult = await QueueService.resumeOrders(
-        ordersResult.orderIds
+        ordersResult.orderIds,
+        tagIds
       );
+
       common.totalProcessedOrders += ordersResult.orderIds.length;
       totalJobsFound += resumeResult.totalJobsFound;
       totalJobsProcessed += resumeResult.totalJobsProcessed;
@@ -245,7 +190,7 @@ export class BatchServiceOrderScope {
       logger.success(
         `Batch ${batch + 1} completed. Resumed ${
           resumeResult.successCount
-        } orders`
+        } jobs`
       );
 
       await updateProgress(
@@ -267,71 +212,7 @@ export class BatchServiceOrderScope {
       ...calculateBatchMetrics(common.batchTimes, common.startTime),
     };
 
-    logger.success(`Batch resume completed:`, result);
-    return result;
-  }
-
-  static async makeInactiveOrderJobs(
-    where: FilteredOrders["filters"],
-    totalCount: FilteredOrders["pageSize"],
-    onProgress?: (progress: BatchProgress) => Promise<void>
-  ): Promise<BatchPauseResumeResult> {
-    const common = initializeBatchProcess(totalCount, this.BATCH_SIZE);
-    let totalJobsFound = 0;
-    let totalJobsProcessed = 0;
-    let totalJobsResumed = 0;
-
-    for (let batch = 0; batch < common.totalBatches; batch++) {
-      const batchStartTime = Date.now();
-
-      const ordersResult = await processOrderBatch(
-        where,
-        common.lastProcessedId,
-        this.BATCH_SIZE,
-        batch + 1,
-        common.totalBatches
-      );
-
-      if (!ordersResult) break;
-
-      const inactiveResult = await QueueService.makeInactiveOrders(
-        ordersResult.orderIds
-      );
-      common.totalProcessedOrders += ordersResult.orderIds.length;
-      totalJobsFound += inactiveResult.totalJobsFound;
-      totalJobsProcessed += inactiveResult.totalJobsProcessed;
-      totalJobsResumed += inactiveResult.totalJobsRemoved;
-      common.lastProcessedId =
-        ordersResult.orderIds[ordersResult.orderIds.length - 1];
-
-      recordBatchTime(common.batchTimes, batchStartTime);
-
-      logger.success(
-        `Batch ${batch + 1} completed. Made inactive ${
-          inactiveResult.successCount
-        } orders`
-      );
-
-      await updateProgress(
-        onProgress,
-        common.totalProcessedOrders,
-        totalCount,
-        batch,
-        common.totalBatches
-      );
-    }
-
-    const result: BatchPauseResumeResult = {
-      success: common.failedOrders.length === 0,
-      totalProcessedOrders: common.totalProcessedOrders,
-      totalJobsFound,
-      totalJobsProcessed,
-      totalJobsResumed,
-      failedOrders: common.failedOrders,
-      ...calculateBatchMetrics(common.batchTimes, common.startTime),
-    };
-
-    logger.success(`Batch inactive completed:`, result);
+    logger.success(`Batch tag resume completed:`, result);
     return result;
   }
 }
