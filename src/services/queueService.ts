@@ -106,17 +106,57 @@ export class QueueService {
 
   static async getTimeLeft(jobId: string) {
     const job = await EmailQueue.getJob(jobId);
+
     if (!job) {
       logger.error(`Job services getTimeLeft ${jobId} not found`);
       return null;
     }
+
+    // Get all timing information
     const now = Date.now();
-    const processAt = job.timestamp + (job.opts.delay ?? 0);
+    const originalDelay = job.opts.delay ?? 0;
+    const jobTimestamp = job.timestamp;
+    const processAt = jobTimestamp + originalDelay;
     const timeLeft = processAt - now;
+
+    // Calculate time units
+    const seconds = Math.floor(timeLeft / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    const remainingHours = hours % 24;
+    const remainingMinutes = minutes % 60;
+    const remainingSeconds = seconds % 60;
+
+    logger.info("Raw job timing values:", {
+      delay: job?.opts.delay,
+      timestamp: job?.timestamp,
+      currentTimestamp: Date.now(),
+    });
+
+    logger.info("Job Timing Analysis:", {
+      jobId,
+      jobName: job.name,
+      tagName: job.data.tagName,
+      timing: {
+        currentTime: new Date(now).toISOString(),
+        jobCreatedAt: new Date(jobTimestamp).toISOString(),
+        willProcessAt: new Date(processAt).toISOString(),
+        originalDelay,
+        timeLeft,
+        breakdown: {
+          days,
+          remainingHours,
+          remainingMinutes,
+          remainingSeconds,
+        },
+        humanReadable: `${days} days, ${remainingHours} hours, ${remainingMinutes} minutes, ${remainingSeconds} seconds`,
+      },
+    });
 
     return timeLeft > 0 ? timeLeft : 0;
   }
-
   static async getJobFromQueues(jobId: string) {
     let job = await EmailQueue.getJob(jobId);
 
@@ -305,16 +345,7 @@ export class QueueService {
               error: "Job not found in PausedQueue",
             };
           }
-
-          const jobState = await pausedJob.getState();
-
-          if (jobState !== "waiting") {
-            return {
-              jobId: queueItem.id,
-              success: false,
-              error: "Job is not in waiting state",
-            };
-          }
+          logger.info(pausedJob.data.timeLeft);
 
           await EmailQueue.add(
             "email-job",

@@ -34,7 +34,6 @@ const worker = new Worker<EmailJob>(
         throw new Error(`Artificial failure for tag: ${tagName}`);
       }
       logger.success("Completed");
-      await queuesQueries.updateStatusQuery(jobId, { status: "SENT" });
     } catch (error) {
       throw error;
     }
@@ -52,7 +51,9 @@ worker.on("completed", async (job: Job<EmailJob>) => {
   const { jobId, tagId } = job.data;
   const updateStatus = queuesQueries.updateStatusQuery(jobId, {
     status: "SENT",
+    completed: true,
   });
+
   await tagQueries.updateTagCount(tagId, "decrement");
 
   await Promise.all([updateStatus]);
@@ -70,6 +71,7 @@ worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
   const maxAttempts = job.opts?.attempts || 3;
 
   await queuesQueries.updateStatusQuery(job.data.jobId, { status: "FAILED" });
+  await tagQueries.updateTagCount(job.data.tagId, "decrement");
   logger.error(
     `Job ${job.data.tagName} failed for queue ${job.data.tagName} (Attempt ${attempt}/${maxAttempts})`
   );
