@@ -71,7 +71,11 @@ worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
   const maxAttempts = job.opts?.attempts || 3;
 
   await queuesQueries.updateStatusQuery(job.data.jobId, { status: "FAILED" });
-  await tagQueries.updateTagCount(job.data.tagId, "decrement");
+
+  if (attempt === 3) {
+    await tagQueries.updateTagCount(job.data.tagId, "decrement");
+  }
+
   logger.error(
     `Job ${job.data.tagName} failed for queue ${job.data.tagName} (Attempt ${attempt}/${maxAttempts})`
   );

@@ -8,6 +8,8 @@ export const addTags: RequestHandler = async (req: Request, res: Response) => {
   try {
     const { orderIds, tagIds } = req.body;
 
+    console.log(req.body);
+
     if (
       !orderIds ||
       !Array.isArray(orderIds) ||
