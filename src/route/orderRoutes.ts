@@ -33,12 +33,27 @@ export const orderRoutes = async (server: Express) => {
   server.post("/api/orders/selected/tscope/remove", orderController.removeTags);
   server.post("/api/orders/selected/tscope/pause", orderController.pauseTags);
   server.post("/api/orders/selected/tscope/resume", orderController.resumeTags);
-  server.post("/api/orders/selected/tscope/inactive", orderController.inactiveTags);
+  server.post(
+    "/api/orders/selected/tscope/inactive",
+    orderController.inactiveTags
+  );
 
-
-  server.post('/api/orders/selected/dscope/delete', orderController.deleteSelectedOrders)
+  server.post(
+    "/api/orders/selected/dscope/delete",
+    orderController.deleteSelectedOrders
+  );
+  server.post(
+    "/api/orders/selected/dscope/pause",
+    orderController.pauseSelectedOrders
+  );
+  server.post(
+    "/api/orders/selected/dscope/resume",
+    orderController.resumeSelectedOrders
+  );
+  server.post(
+    "/api/orders/selected/dscope/inactive",
+    orderController.inactiveSelectedOrders
+  );
 };
-
-
 
 export default router;

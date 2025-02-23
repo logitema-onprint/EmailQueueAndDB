@@ -17,6 +17,9 @@ import { pauseTags } from "./tagScope/pauseTags";
 import { resumeTags } from "./tagScope/resumeTags";
 import { inactiveTags } from "./tagScope/inactiveTags";
 import { deleteSelectedOrders } from "./orderScope/deleteOrders";
+import { pauseSelectedOrders } from "./orderScope/pauseOrders";
+import { resumeSelectedOrders } from "./orderScope/resumeOrders";
+import { inactiveSelectedOrders } from "./orderScope/inactiveOrders";
 
 const orderController = {
   createOrder,
@@ -37,7 +40,10 @@ const orderController = {
   pauseTags,
   resumeTags,
   inactiveTags,
-  deleteSelectedOrders
+  deleteSelectedOrders,
+  pauseSelectedOrders,
+  resumeSelectedOrders,
+  inactiveSelectedOrders,
 };
 
 export default orderController;
