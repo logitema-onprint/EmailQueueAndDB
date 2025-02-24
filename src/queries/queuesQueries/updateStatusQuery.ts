@@ -3,11 +3,12 @@ import prisma from "../../services/prisma";
 import { QueueService } from "../../services/queueService";
 import logger from "../../utils/logger";
 
-type Status = "SENT" | "FAILED" | "SENDING" | "QUEUED" | "PAUSED";
+type Status = "SENT" | "FAILED" | "SENDING" | "QUEUED" | "PAUSED" | "INACTIVE";
 
 interface UpdateStatus {
   status: Status;
   processed?: boolean;
+  completed?: boolean;
   error?: string;
   incrementAttempts?: boolean;
 }
@@ -22,6 +23,7 @@ export const updateStatusQuery = async (
     status: update.status,
     ...(update.incrementAttempts && { attempts: { increment: 1 } }),
     ...(update.processed && { processedAt: timestamp }),
+    ...(update.completed && { completedAt: timestamp}),
     ...(update.error && { error: update.error }),
   };
 

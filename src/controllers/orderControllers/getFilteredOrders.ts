@@ -43,7 +43,7 @@ export const getFilteredOrders: RequestHandler = async (
     if (data.totalCount)
       res.status(200).json({
         success: true,
-        data: transformedData,
+        items: transformedData,
         pagination: {
           currentPage: page,
           totalPages: Math.ceil(data.totalCount / itemsPerPage),

@@ -1,17 +1,16 @@
 import { RequestHandler, Response, Request } from "express";
-import { orderQueries } from "../../queries/orderQueries";
-import logger from "../../utils/logger";
-import { BatchQueue } from "../../queues/batchQueue";
+import { orderQueries } from "../../../queries/orderQueries";
+import logger from "../../../utils/logger";
+import { QueueService } from "../../../services/queueService";
+import { BatchQueue } from "../../../queues/batchQueue";
+import { Tag } from "@prisma/client";
 
-
-export const addTagsToOrders: RequestHandler = async (
+export const resumeTagsToFilteredOrders: RequestHandler = async (
   req: Request,
   res: Response
 ) => {
   try {
     const { filters, tagIds } = req.body;
-
-    logger.info(req.body);
 
     if (!filters) {
       res.status(400).json({
@@ -29,12 +28,10 @@ export const addTagsToOrders: RequestHandler = async (
       return;
     }
 
-    const totalCount = (await orderQueries.getFilteredOrders(filters)).totalCount
-
     const job = await BatchQueue.add(
-      "add-tags",
+      "resume-tags",
       {
-        type: "add-tags",
+        type: "resume-tags",
         filters,
         tagIds,
       },
@@ -46,15 +43,14 @@ export const addTagsToOrders: RequestHandler = async (
 
     res.status(202).json({
       success: true,
-      message: "Tag addition process started",
-      totalCount,
+      message: "Tag resume process started",
       jobId: job.id,
     });
   } catch (error) {
-    logger.error("Failed to queue tag addition", error);
+    logger.error("Failed to queue tag resume", error);
     res.status(500).json({
       success: false,
-      message: "Failed to queue tag addition",
+      message: "Failed to queue tag resume",
     });
   }
 };

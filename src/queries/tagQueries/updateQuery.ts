@@ -4,6 +4,7 @@ import logger from "../../utils/logger";
 interface UpdateTagData {
   tagName?: string;
   scheduledFor?: number;
+  jobsCount?: number;
 }
 
 export async function updateTag(tagId: number, data: UpdateTagData) {
@@ -12,11 +13,16 @@ export async function updateTag(tagId: number, data: UpdateTagData) {
       throw new Error("No update fields provided");
     }
 
+    logger.info(data);
+
     const updatedTag = await prisma.tag.update({
       where: { id: tagId },
       data: {
         ...(data.tagName && { tagName: data.tagName }),
-        ...(data.scheduledFor !== undefined && { scheduledFor: data.scheduledFor }),
+        ...(typeof data.jobsCount === 'number' && { jobsCount: data.jobsCount }), 
+        ...(data.scheduledFor !== undefined && {
+          scheduledFor: data.scheduledFor,
+        }),
       },
     });
 

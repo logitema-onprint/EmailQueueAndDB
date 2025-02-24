@@ -1,16 +1,16 @@
 import { RequestHandler, Response, Request } from "express";
-import { orderQueries } from "../../queries/orderQueries";
-import logger from "../../utils/logger";
-import { QueueService } from "../../services/queueService";
-import { BatchQueue } from "../../queues/batchQueue";
+import { orderQueries } from "../../../queries/orderQueries";
+import logger from "../../../utils/logger";
+import { QueueService } from "../../../services/queueService";
+import { BatchQueue } from "../../../queues/batchQueue";
 import { Tag } from "@prisma/client";
 
-export const resumeManyOrders: RequestHandler = async (
+export const pauseManyOrders: RequestHandler = async (
     req: Request,
     res: Response
 ) => {
     try {
-        const filters = req.body;
+        const filters  = req.body;
 
         logger.info(req.body);
 
@@ -22,11 +22,10 @@ export const resumeManyOrders: RequestHandler = async (
             return;
         }
         const totalCount = (await orderQueries.getFilteredOrders(filters)).totalCount
-
         const job = await BatchQueue.add(
-            "resumeOrders",
+            "pauseOrders",
             {
-                type: "resumeOrders",
+                type: "pauseOrders",
                 filters,
             },
             {
@@ -37,15 +36,15 @@ export const resumeManyOrders: RequestHandler = async (
 
         res.status(202).json({
             success: true,
-            message: "Resume orders process started",
+            totalCount,
+            message: "Orders pausing started",
             jobId: job.id,
-            totalCount
         });
     } catch (error) {
-        logger.error("Failed to resume orders", error);
+        logger.error("Failed to pause orders", error);
         res.status(500).json({
             success: false,
-            message: "Failed to resume orders",
+            message: "Failed to pause orders",
         });
     }
 };

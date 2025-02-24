@@ -1,8 +1,11 @@
 import { Worker } from "bullmq";
 import logger from "../utils/logger";
 import { orderQueries } from "../queries/orderQueries";
-import { BatchService } from "../services/batchService";
 import { tagQueries } from "../queries/tagQueries";
+import { BatchServiceOrderScope } from "../services/batchServiceOrderScope";
+import { BatchServiceOrderTagScope } from "../services/batchServiceOrderTagScope";
+import { log } from "console";
+import { Tag } from "@prisma/client";
 
 const orderBatchWorker = new Worker(
   "batch-operation-queue",
@@ -23,6 +26,25 @@ const orderBatchWorker = new Worker(
     const totalCount = where.totalCount ?? 0;
     logger.info(`Total count: ${totalCount}`);
 
+    let validTags = [];
+    let validTagIds: Tag["id"][] = [];
+
+    if (tagIds) {
+      const tagPromises = tagIds.map((tagId: number) =>
+        tagQueries.getTag(tagId)
+      );
+      const tagResults = await Promise.all(tagPromises);
+
+      for (const result of tagResults) {
+        if (result.success && result.data) {
+          validTags.push(result.data);
+        }
+      }
+      validTagIds = validTags.map((tag: Tag) => tag.id);
+      logger.info("Valid tag Ids:", validTagIds);
+      logger.info(validTags);
+    }
+
     if (!where.success || !where.where) {
       throw new Error(`Failed to build where clause: ${JSON.stringify(where)}`);
     }
@@ -30,7 +52,7 @@ const orderBatchWorker = new Worker(
     try {
       switch (type) {
         case "delete":
-          return await BatchService.deleteOrders(
+          return await BatchServiceOrderScope.deleteOrders(
             where.where,
             totalCount,
             async (progress) => {
@@ -42,20 +64,7 @@ const orderBatchWorker = new Worker(
             throw new Error("Missing or invalid tags for add-tags operation");
           }
 
-          const tagPromises = tagIds.map((tagId) => tagQueries.getTag(tagId));
-          const tagResults = await Promise.all(tagPromises);
-
-          const validTags = [];
-
-          for (const result of tagResults) {
-            if (result.success && result.data) {
-              validTags.push(result.data);
-            }
-          }
-
-          logger.info(validTags);
-
-          return await BatchService.addTagsToOrders(
+          return await BatchServiceOrderScope.addTagsToOrders(
             where.where,
             totalCount,
             validTags,
@@ -63,8 +72,35 @@ const orderBatchWorker = new Worker(
               await job.updateProgress(progress.percent);
             }
           );
+        case "remove-tags":
+          return await BatchServiceOrderTagScope.removeSelectedTags(
+            where.where,
+            totalCount,
+            validTagIds,
+            async (progress) => {
+              await job.updateProgress(progress.percent);
+            }
+          );
+        case "pause-tags":
+          return await BatchServiceOrderTagScope.pauseSelectedTags(
+            where.where,
+            totalCount,
+            validTagIds,
+            async (progress) => {
+              await job.updateProgress(progress.percent);
+            }
+          );
+        case "resume-tags":
+          return await BatchServiceOrderTagScope.resumeSelectedTags(
+            where.where,
+            totalCount,
+            validTagIds,
+            async (progress) => {
+              await job.updateProgress(progress.percent);
+            }
+          );
         case "pauseOrders":
-          return await BatchService.pauseOrderJobs(
+          return await BatchServiceOrderScope.pauseOrderJobs(
             where.where,
             totalCount,
             async (progress) => {
@@ -73,7 +109,15 @@ const orderBatchWorker = new Worker(
           );
 
         case "resumeOrders":
-          return await BatchService.resumeOrderJobs(
+          return await BatchServiceOrderScope.resumeOrderJobs(
+            where.where,
+            totalCount,
+            async (progress) => {
+              await job.updateProgress(progress.percent);
+            }
+          );
+        case "inactiveOrders":
+          return await BatchServiceOrderScope.makeInactiveOrderJobs(
             where.where,
             totalCount,
             async (progress) => {
@@ -102,7 +146,7 @@ orderBatchWorker.on("error", (error) => {
   logger.error("Worker error:", error);
 });
 
-orderBatchWorker.on("completed", (job, result) => { });
+orderBatchWorker.on("completed", (job, result) => {});
 
 orderBatchWorker.on("failed", (job, error) => {
   logger.error(`Job ${job?.id} failed:`, error);

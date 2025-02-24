@@ -1,11 +1,9 @@
 import { RequestHandler, Response, Request } from "express";
-import { orderQueries } from "../../queries/orderQueries";
 import logger from "../../utils/logger";
-import { QueueService } from "../../services/queueService";
 import { BatchQueue } from "../../queues/batchQueue";
-import { Tag } from "@prisma/client";
 
-export const pauseManyOrders: RequestHandler = async (
+
+export const inactiveManyOrders: RequestHandler = async (
     req: Request,
     res: Response
 ) => {
@@ -21,11 +19,11 @@ export const pauseManyOrders: RequestHandler = async (
             });
             return;
         }
-        const totalCount = (await orderQueries.getFilteredOrders(filters)).totalCount
+
         const job = await BatchQueue.add(
-            "pauseOrders",
+            "inactiveOrders",
             {
-                type: "pauseOrders",
+                type: "inactiveOrders",
                 filters,
             },
             {
@@ -36,15 +34,14 @@ export const pauseManyOrders: RequestHandler = async (
 
         res.status(202).json({
             success: true,
-            totalCount,
-            message: "Orders pausing started",
+            message: "Orders inactive started",
             jobId: job.id,
         });
     } catch (error) {
-        logger.error("Failed to pause orders", error);
+        logger.error("Failed to inactive orders", error);
         res.status(500).json({
             success: false,
-            message: "Failed to pause orders",
+            message: "Failed to inactive orders",
         });
     }
 };

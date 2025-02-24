@@ -9,7 +9,6 @@ export const queueRoutes = async (server: Express) => {
   server.post("/api/queue/pause", queueControllers.pauseQueuesByTag);
   server.post("/api/queue/resume", queueControllers.resumeQueuesByTag);
 
-
   // Then routes with parameters
   server.post("/api/queue/pause/job/:jobId", queueControllers.pauseQueue);
   server.post("/api/queue/resume/job/:jobId", queueControllers.resumeQueue);
@@ -22,6 +21,8 @@ export const queueRoutes = async (server: Express) => {
   server.post("/api/queue", queueControllers.createQueue);
   server.delete("/api/queue/:jobId", queueControllers.deleteQueue);
   server.get("/api/queue/:jobId", queueControllers.getQueue);
+
+  server.get("/api/queue/bullmq/stats", queueControllers.getQueueStats);
 };
 
 export default router;

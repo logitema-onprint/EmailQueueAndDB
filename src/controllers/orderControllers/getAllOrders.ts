@@ -16,7 +16,7 @@ export const getAllOrders: RequestHandler = async (
         success: false,
         message: "Page number must be greater than 0",
       });
-      return
+      return;
     }
 
     const result = await orderQueries.getAllOrders({
@@ -30,31 +30,25 @@ export const getAllOrders: RequestHandler = async (
         success: false,
         message: "Failed to retrieve orders",
       });
-      return
+      return;
     }
 
     const transformedOrders = serializeBigInt(result.orders);
-    const totalCount = result.totalCount;
 
     res.status(200).json({
       success: true,
-      data: {
-        orders: {
-          orderCount: totalCount,
-          items: transformedOrders,
-        },
-      },
+      items: transformedOrders,
       pagination: {
         currentPage: page,
-        totalPages: Math.ceil(totalCount / itemsPerPage),
+        totalPages: Math.ceil(result.totalCount / itemsPerPage),
         itemsPerPage,
-        totalItems: totalCount,
-        nextPage: page < Math.ceil(totalCount / itemsPerPage) ? page + 1 : null,
+        totalItems: result.totalCount,
+        nextPage:
+          page < Math.ceil(result.totalCount / itemsPerPage) ? page + 1 : null,
         previousPage: page > 1 ? page - 1 : null,
-        hasNextPage: page * itemsPerPage < totalCount,
+        hasNextPage: page * itemsPerPage < result.totalCount,
         hasPreviousPage: page > 1,
       },
-      message: "Orders retrieved successfully",
     });
   } catch (error) {
     logger.error("Failed to get orders", error);

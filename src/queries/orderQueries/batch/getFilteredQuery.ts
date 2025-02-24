@@ -271,9 +271,7 @@ export async function getFilteredOrders(
       include: {
         jobs: true,
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
     });

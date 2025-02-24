@@ -4,6 +4,7 @@ import { getQuery } from "./getQuery";
 import { getQueueCount } from "./getQueueCount";
 import { updateStatusQuery } from "./updateStatusQuery";
 import { getAllQuery } from "./getAllQuery";
+import { deleteManyJobs } from "./deleteManyQuery";
 
 export const queuesQueries = {
   createQueue,
@@ -12,4 +13,5 @@ export const queuesQueries = {
   updateStatusQuery,
   getQueueCount,
   getAllQuery,
+  deleteManyJobs,
 };
