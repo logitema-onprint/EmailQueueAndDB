@@ -47,6 +47,7 @@ export interface BatchPauseResumeResult extends BatchTagResult {
   totalJobsProcessed: number;
   totalJobsPaused?: number;
   totalJobsResumed?: number;
+  totalJobsRemoved?: number;
 }
 
 export interface Tags {

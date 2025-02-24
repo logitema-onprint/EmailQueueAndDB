@@ -99,6 +99,15 @@ const orderBatchWorker = new Worker(
               await job.updateProgress(progress.percent);
             }
           );
+        case "inactive-tags":
+          return await BatchServiceOrderTagScope.inactiveSelectedOrders(
+            where.where,
+            totalCount,
+            validTagIds,
+            async (progress) => {
+              await job.updateProgress(progress.percent);
+            }
+          );
         case "pauseOrders":
           return await BatchServiceOrderScope.pauseOrderJobs(
             where.where,

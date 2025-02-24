@@ -22,6 +22,10 @@ export const orderRoutes = async (server: Express) => {
     "/api/orders/resume/tags",
     orderController.resumeTagsToFilteredOrders
   );
+  server.post(
+    "/api/orders/inactive/tags",
+    orderController.inactiveFilteredOrders
+  );
 
   server.post("/api/order/test", testOrderControllers.createMassOrders);
 

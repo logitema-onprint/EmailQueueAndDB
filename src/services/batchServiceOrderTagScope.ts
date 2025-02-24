@@ -1,6 +1,11 @@
 import { Tag } from "@prisma/client";
 import { orderQueries } from "../queries/orderQueries";
-import { BatchPauseResumeResult, BatchProgress, BatchResult, Tags } from "../types/batchTypes";
+import {
+  BatchPauseResumeResult,
+  BatchProgress,
+  BatchResult,
+  Tags,
+} from "../types/batchTypes";
 import { FilteredOrders } from "../types/orderApi";
 import {
   initializeBatchProcess,
@@ -140,6 +145,7 @@ export class BatchServiceOrderTagScope {
       totalJobsFound,
       totalJobsProcessed,
       totalJobsPaused,
+
       failedOrders: common.failedOrders,
       ...calculateBatchMetrics(common.batchTimes, common.startTime),
     };
@@ -213,6 +219,73 @@ export class BatchServiceOrderTagScope {
     };
 
     logger.success(`Batch tag resume completed:`, result);
+    return result;
+  }
+  static async inactiveSelectedOrders(
+    where: FilteredOrders["filters"],
+    totalCount: FilteredOrders["pageSize"],
+    tagIds: number[],
+    onProgress?: (progress: BatchProgress) => Promise<void>
+  ): Promise<BatchPauseResumeResult> {
+    const common = initializeBatchProcess(totalCount, this.BATCH_SIZE);
+    let totalJobsFound = 0;
+    let totalJobsProcessed = 0;
+    let totalJobsRemoved = 0;
+
+    for (let batch = 0; batch < common.totalBatches; batch++) {
+      const batchStartTime = Date.now();
+      logger.info(`Processing batch ${batch + 1} of ${common.totalBatches}`);
+
+      const ordersResult = await processOrderBatch(
+        where,
+        common.lastProcessedId,
+        this.BATCH_SIZE,
+        batch + 1,
+        common.totalBatches
+      );
+
+      if (!ordersResult) break;
+
+      const resumeResult = await QueueService.makeInactiveOrders(
+        ordersResult.orderIds,
+        tagIds
+      );
+
+      common.totalProcessedOrders += ordersResult.orderIds.length;
+      totalJobsFound += resumeResult.totalJobsFound;
+      totalJobsProcessed += resumeResult.totalJobsProcessed;
+      totalJobsRemoved += resumeResult.totalJobsRemoved;
+      common.lastProcessedId =
+        ordersResult.orderIds[ordersResult.orderIds.length - 1];
+
+      recordBatchTime(common.batchTimes, batchStartTime);
+
+      logger.success(
+        `Batch ${batch + 1} completed. Inactive ${
+          resumeResult.successCount
+        } jobs`
+      );
+
+      await updateProgress(
+        onProgress,
+        common.totalProcessedOrders,
+        totalCount,
+        batch,
+        common.totalBatches
+      );
+    }
+
+    const result: BatchPauseResumeResult = {
+      success: common.failedOrders.length === 0,
+      totalProcessedOrders: common.totalProcessedOrders,
+      totalJobsFound,
+      totalJobsProcessed,
+      totalJobsRemoved,
+      failedOrders: common.failedOrders,
+      ...calculateBatchMetrics(common.batchTimes, common.startTime),
+    };
+
+    logger.success(`Batch tag inactive completed:`, result);
     return result;
   }
 }

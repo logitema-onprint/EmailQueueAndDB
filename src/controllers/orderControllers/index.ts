@@ -20,6 +20,7 @@ import { deleteSelectedOrders } from "./orderScope/deleteOrders";
 import { pauseSelectedOrders } from "./orderScope/pauseOrders";
 import { resumeSelectedOrders } from "./orderScope/resumeOrders";
 import { inactiveSelectedOrders } from "./orderScope/inactiveOrders";
+import { inactiveFilteredOrders } from "./batch/inactiveTagsFromFilteredOrders";
 
 const orderController = {
   createOrder,
@@ -35,6 +36,7 @@ const orderController = {
   removeTagsFromOrders,
   pauseTagsToFilteredOrders,
   resumeTagsToFilteredOrders,
+  inactiveFilteredOrders,
   addTags,
   removeTags,
   pauseTags,
