@@ -18,7 +18,7 @@ export const deleteManyOrders: RequestHandler = async (
                 message: "Missing filters in request body",
             });
         }
-
+        const totalCount = (await orderQueries.getFilteredOrders(filters)).totalCount
         const job = await BatchQueue.add('delete-orders', {
             type: 'delete',
             filters,
@@ -30,7 +30,8 @@ export const deleteManyOrders: RequestHandler = async (
         res.status(202).json({
             success: true,
             message: "Deletion process started",
-            jobId: job.id
+            jobId: job.id,
+            totalCount
         });
 
     } catch (error) {

@@ -10,7 +10,7 @@ export const resumeManyOrders: RequestHandler = async (
     res: Response
 ) => {
     try {
-        const  filters  = req.body;
+        const filters = req.body;
 
         logger.info(req.body);
 
@@ -21,6 +21,7 @@ export const resumeManyOrders: RequestHandler = async (
             });
             return;
         }
+        const totalCount = (await orderQueries.getFilteredOrders(filters)).totalCount
 
         const job = await BatchQueue.add(
             "resumeOrders",
@@ -38,6 +39,7 @@ export const resumeManyOrders: RequestHandler = async (
             success: true,
             message: "Resume orders process started",
             jobId: job.id,
+            totalCount
         });
     } catch (error) {
         logger.error("Failed to resume orders", error);

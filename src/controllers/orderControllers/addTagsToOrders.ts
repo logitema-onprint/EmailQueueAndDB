@@ -1,9 +1,8 @@
 import { RequestHandler, Response, Request } from "express";
 import { orderQueries } from "../../queries/orderQueries";
 import logger from "../../utils/logger";
-import { QueueService } from "../../services/queueService";
 import { BatchQueue } from "../../queues/batchQueue";
-import { Tag } from "@prisma/client";
+
 
 export const addTagsToOrders: RequestHandler = async (
   req: Request,
@@ -30,6 +29,8 @@ export const addTagsToOrders: RequestHandler = async (
       return;
     }
 
+    const totalCount = (await orderQueries.getFilteredOrders(filters)).totalCount
+
     const job = await BatchQueue.add(
       "add-tags",
       {
@@ -46,6 +47,7 @@ export const addTagsToOrders: RequestHandler = async (
     res.status(202).json({
       success: true,
       message: "Tag addition process started",
+      totalCount,
       jobId: job.id,
     });
   } catch (error) {
