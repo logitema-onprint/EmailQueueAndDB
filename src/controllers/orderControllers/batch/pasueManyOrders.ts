@@ -21,7 +21,7 @@ export const pauseManyOrders: RequestHandler = async (
             });
             return;
         }
-
+        const totalCount = (await orderQueries.getFilteredOrders(filters)).totalCount
         const job = await BatchQueue.add(
             "pauseOrders",
             {
@@ -36,6 +36,7 @@ export const pauseManyOrders: RequestHandler = async (
 
         res.status(202).json({
             success: true,
+            totalCount,
             message: "Orders pausing started",
             jobId: job.id,
         });

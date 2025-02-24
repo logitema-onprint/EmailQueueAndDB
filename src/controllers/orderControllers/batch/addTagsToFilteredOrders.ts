@@ -28,6 +28,8 @@ export const addTagsToOrders: RequestHandler = async (
       return;
     }
 
+    const totalCount = (await orderQueries.getFilteredOrders(filters)).totalCount
+
     const job = await BatchQueue.add(
       "add-tags",
       {
@@ -44,6 +46,7 @@ export const addTagsToOrders: RequestHandler = async (
     res.status(202).json({
       success: true,
       message: "Tag addition process started",
+      totalCount,
       jobId: job.id,
     });
   } catch (error) {
