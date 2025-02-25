@@ -31,9 +31,6 @@ export class QueueService {
         throw new Error("Missing required tags");
       }
 
-      logger.info("fired");
-      logger.info(orderIds, tags);
-
       const orderIdArray = Array.isArray(orderIds) ? orderIds : [orderIds];
       const timestamp = new Date().toISOString();
       let bulkJobs = [];
@@ -55,7 +52,7 @@ export class QueueService {
               jobId: jobId,
               delay: delay,
               attempts: 3,
-            }
+            },
           });
           queueItems.push({
             id: jobId,
@@ -72,11 +69,9 @@ export class QueueService {
         }
       }
 
-
       const jobs = await EmailQueue.addBulk(bulkJobs);
 
-
-      const queueResult = await queuesQueries.createQueueBulk(queueItems)
+      const queueResult = await queuesQueries.createQueueBulk(queueItems);
 
       if (!queueResult.success) {
         for (const job of jobs) {
@@ -85,9 +80,13 @@ export class QueueService {
         throw new Error(`Failed to create queue records: ${queueResult.error}`);
       }
 
-
-      const tagUpdates = Array.from(tagCountMap.entries()).map(([id, count]) => ({ id, count }));
-      const tagUpdateResult = await tagQueries.updateTagCountMany(tagUpdates, "increment");
+      const tagUpdates = Array.from(tagCountMap.entries()).map(
+        ([id, count]) => ({ id, count })
+      );
+      const tagUpdateResult = await tagQueries.updateTagCountMany(
+        tagUpdates,
+        "increment"
+      );
 
       if (!tagUpdateResult.success) {
         logger.error(`Failed to update tag counts: ${tagUpdateResult.error}`);
@@ -144,31 +143,31 @@ export class QueueService {
     const remainingMinutes = minutes % 60;
     const remainingSeconds = seconds % 60;
 
-    logger.info("Raw job timing values:", {
-      delay: job?.opts.delay,
-      timestamp: job?.timestamp,
-      currentTimestamp: Date.now(),
-    });
+    // logger.info("Raw job timing values:", {
+    //   delay: job?.opts.delay,
+    //   timestamp: job?.timestamp,
+    //   currentTimestamp: Date.now(),
+    // });
 
-    logger.info("Job Timing Analysis:", {
-      jobId,
-      jobName: job.name,
-      tagName: job.data.tagName,
-      timing: {
-        currentTime: new Date(now).toISOString(),
-        jobCreatedAt: new Date(jobTimestamp).toISOString(),
-        willProcessAt: new Date(processAt).toISOString(),
-        originalDelay,
-        timeLeft,
-        breakdown: {
-          days,
-          remainingHours,
-          remainingMinutes,
-          remainingSeconds,
-        },
-        humanReadable: `${days} days, ${remainingHours} hours, ${remainingMinutes} minutes, ${remainingSeconds} seconds`,
-      },
-    });
+    // logger.info("Job Timing Analysis:", {
+    //   jobId,
+    //   jobName: job.name,
+    //   tagName: job.data.tagName,
+    //   timing: {
+    //     currentTime: new Date(now).toISOString(),
+    //     jobCreatedAt: new Date(jobTimestamp).toISOString(),
+    //     willProcessAt: new Date(processAt).toISOString(),
+    //     originalDelay,
+    //     timeLeft,
+    //     breakdown: {
+    //       days,
+    //       remainingHours,
+    //       remainingMinutes,
+    //       remainingSeconds,
+    //     },
+    //     humanReadable: `${days} days, ${remainingHours} hours, ${remainingMinutes} minutes, ${remainingSeconds} seconds`,
+    //   },
+    // });
 
     return timeLeft > 0 ? timeLeft : 0;
   }
@@ -194,47 +193,111 @@ export class QueueService {
     };
   }
   static async removeJobsFromQueues(jobIds: string[]) {
-    try {
-      const removalPromises = jobIds.map(async (jobId) => {
-        const emailQueueJob = await EmailQueue.getJob(jobId);
+    if (!jobIds || !jobIds.length) {
+      throw new Error("No job IDs provided");
+    }
 
-        if (emailQueueJob) {
-          await emailQueueJob.remove();
-          await tagQueries.updateTagCount(
-            emailQueueJob.data.tagId,
-            "decrement"
-          );
-          return { jobId, queue: "email" };
-        }
+    const totalJobsFound = jobIds.length;
 
-        const pausedQueueJob = await PausedQueue.getJob(jobId);
-        if (pausedQueueJob) {
-          await pausedQueueJob.remove();
-          await tagQueries.updateTagCount(
-            pausedQueueJob.data.tagId,
-            "decrement"
-          );
-          return { jobId, queue: "paused" };
-        }
-
-        logger.info(`Job ${jobId} not found in any queue`);
-        return null;
-      });
-
-      const results = await Promise.all(removalPromises);
-
+    if (jobIds.length === 0) {
+      logger.info("No jobs provided");
       return {
         success: true,
-        message: "Jobs removed from queues",
-        details: results.filter((result) => result !== null),
-      };
-    } catch (error) {
-      logger.error("Failed to remove jobs from queues", error);
-      return {
-        success: false,
-        error: "Failed to remove jobs from queues",
+        successCount: 0,
+        failureCount: 0,
+        totalJobsFound: 0,
+        totalJobsProcessed: 0,
+        totalJobsRemoved: 0,
+        message: "No jobs provided",
       };
     }
+
+    const emailJobs: any[] = [];
+    const pausedJobs: any[] = [];
+    const tagCountMap = new Map<number, number>();
+    let totalJobsProcessed = 0;
+    let totalJobsRemoved = 0;
+
+    const jobPromises = jobIds.map(async (jobId) => {
+      try {
+        totalJobsProcessed++;
+
+        const emailJob = await EmailQueue.getJob(jobId);
+        if (emailJob) {
+          emailJobs.push(emailJob);
+
+          const jobState = await emailJob.getState();
+          const tagId = emailJob.data.tagId;
+          if (jobState !== "completed" && jobState !== "failed") {
+            tagCountMap.set(tagId, (tagCountMap.get(tagId) || 0) + 1);
+          }
+
+          return { jobId: jobId, success: true, queue: "email" };
+        }
+
+        const pausedJob = await PausedQueue.getJob(jobId);
+        if (pausedJob) {
+          pausedJobs.push(pausedJob);
+
+          const jobState = await pausedJob.getState();
+          const tagId = pausedJob.data.tagId;
+          if (jobState !== "completed" && jobState !== "failed") {
+            tagCountMap.set(tagId, (tagCountMap.get(tagId) || 0) + 1);
+          }
+
+          return { jobId: jobId, success: true, queue: "paused" };
+        }
+
+        return { jobId: jobId, success: true, queue: "none" };
+      } catch (error) {
+        logger.error(`Failed to process job ${jobId}:`, error);
+        return {
+          jobId: jobId,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    });
+
+    const results = await Promise.all(jobPromises);
+
+    if (emailJobs.length > 0) {
+      try {
+        await Promise.all(emailJobs.map((job) => job.remove()));
+        totalJobsRemoved += emailJobs.length;
+      } catch (error) {
+        logger.error("Failed to remove some email queue jobs:", error);
+      }
+    }
+
+    if (pausedJobs.length > 0) {
+      try {
+        await Promise.all(pausedJobs.map((job) => job.remove()));
+        totalJobsRemoved += pausedJobs.length;
+      } catch (error) {
+        logger.error("Failed to remove some paused queue jobs:", error);
+      }
+    }
+
+    if (tagCountMap.size > 0) {
+      const tagUpdates = Array.from(tagCountMap.entries()).map(
+        ([id, count]) => ({ id, count })
+      );
+      await tagQueries.updateTagCountMany(tagUpdates, "decrement");
+    }
+
+    const successCount = results.filter((r) => r.success).length;
+    const failureCount = results.filter((r) => !r.success).length;
+
+    return {
+      success: true,
+      successCount,
+      failureCount,
+      totalJobsFound,
+      totalJobsProcessed,
+      totalJobsRemoved,
+      message: `Found ${totalJobsFound} jobs, processed ${totalJobsProcessed}, successfully removed ${totalJobsRemoved} jobs, ${failureCount} failed`,
+    };
   }
   static async pauseOrders(orderIds: number[], tagIds?: number[]) {
     if (!orderIds || orderIds.length === 0) {
@@ -250,67 +313,92 @@ export class QueueService {
 
     const { jobs } = await queuesQueries.getAllQuery(queryParams);
     const totalJobsFound = jobs.length;
+
+    if (jobs.length === 0) {
+      logger.info("No queued jobs found for the provided orders");
+      return {
+        success: true,
+        successCount: 0,
+        failureCount: 0,
+        totalJobsFound: 0,
+        totalJobsProcessed: 0,
+        totalJobsPaused: 0,
+        message: "No queued jobs found for the provided orders",
+      };
+    }
+
+    const emailJobs: any[] = [];
     let totalJobsProcessed = 0;
     let totalJobsPaused = 0;
 
-    const results = await Promise.all(
-      jobs.map(async (queueItem: Job) => {
-        try {
-          totalJobsProcessed++;
-          const job = await EmailQueue.getJob(queueItem.id);
+    const jobPromises = jobs.map(async (queueItem: Job) => {
+      try {
+        totalJobsProcessed++;
 
-          if (!job) {
-            return {
-              jobId: queueItem.id,
-              success: false,
-              error: "Job not found in EmailQueue",
-            };
-          }
+        const emailJob = await EmailQueue.getJob(queueItem.id);
+        if (emailJob) {
+          const jobState = await emailJob.getState();
 
-          const jobState = await job.getState();
-
-          if (jobState !== "delayed") {
+          if (jobState === "delayed") {
+            emailJobs.push({
+              job: emailJob,
+              timeLeft: await QueueService.getTimeLeft(queueItem.id),
+            });
+            return { jobId: queueItem.id, success: true, queue: "email" };
+          } else {
             return {
               jobId: queueItem.id,
               success: false,
               error: "Job is not in delayed state",
             };
           }
-
-          const timeLeft = await QueueService.getTimeLeft(queueItem.id);
-
-          await PausedQueue.add(
-            "paused-job",
-            { ...job.data, timeLeft },
-            { jobId: queueItem.id }
-          );
-
-          await job.remove();
-
-          await queuesQueries.updateStatusQuery(job.data.jobId, {
-            status: "PAUSED",
-          });
-
-          totalJobsPaused++;
-          return {
-            jobId: queueItem.id,
-            success: true,
-          };
-        } catch (error) {
-          logger.error(`Failed to pause job ${queueItem.id}:`, error);
-          return {
-            jobId: queueItem.id,
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error",
-          };
         }
-      })
-    );
+
+        return {
+          jobId: queueItem.id,
+          success: false,
+          error: "Job not found in EmailQueue",
+        };
+      } catch (error) {
+        logger.error(`Failed to process job ${queueItem.id}:`, error);
+        return {
+          jobId: queueItem.id,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    });
+
+    const results = await Promise.all(jobPromises);
+
+    if (emailJobs.length > 0) {
+      try {
+        await Promise.all(
+          emailJobs.map(async ({ job, timeLeft }) => {
+            await PausedQueue.add(
+              "paused-job",
+              { ...job.data, timeLeft },
+              { jobId: job.id }
+            );
+
+            await job.remove();
+          })
+        );
+
+        const jobIds = emailJobs.map((item) => item.job.data.jobId);
+        await queuesQueries.updateManyStatusQuery(jobIds, { status: "PAUSED" });
+
+        totalJobsPaused += emailJobs.length;
+      } catch (error) {
+        logger.error("Failed to pause some email queue jobs:", error);
+      }
+    }
 
     const successCount = results.filter((r) => r.success).length;
     const failureCount = results.filter((r) => !r.success).length;
 
     return {
+      success: true,
       successCount,
       failureCount,
       totalJobsFound,
@@ -333,12 +421,11 @@ export class QueueService {
 
     const { jobs } = await queuesQueries.getAllQuery(queryParams);
     const totalJobsFound = jobs.length;
-    let totalJobsProcessed = 0;
-    let totalJobsResumed = 0;
 
     if (jobs.length === 0) {
       logger.info("No paused jobs found for the provided orders");
       return {
+        success: true,
         successCount: 0,
         failureCount: 0,
         totalJobsFound: 0,
@@ -348,57 +435,69 @@ export class QueueService {
       };
     }
 
-    const results = await Promise.all(
-      jobs.map(async (queueItem: Job) => {
-        try {
-          totalJobsProcessed++;
-          const pausedJob = await PausedQueue.getJob(queueItem.id);
+    const pausedJobs: any[] = [];
+    let totalJobsProcessed = 0;
+    let totalJobsResumed = 0;
 
-          if (!pausedJob) {
-            return {
-              jobId: queueItem.id,
-              success: false,
-              error: "Job not found in PausedQueue",
-            };
-          }
-          logger.info(pausedJob.data.timeLeft);
+    const jobPromises = jobs.map(async (queueItem: Job) => {
+      try {
+        totalJobsProcessed++;
 
-          await EmailQueue.add(
-            "email-job",
-            { ...pausedJob.data },
-            {
-              jobId: queueItem.id,
-              delay: pausedJob.data.timeLeft,
-              attempts: pausedJob.data.attempts,
-            }
-          );
-
-          await pausedJob.remove();
-
-          await queuesQueries.updateStatusQuery(queueItem.id, {
-            status: "QUEUED",
-          });
-
-          totalJobsResumed++;
-          return {
-            jobId: queueItem.id,
-            success: true,
-          };
-        } catch (error) {
-          logger.error(`Failed to resume job ${queueItem.id}:`, error);
-          return {
-            jobId: queueItem.id,
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error",
-          };
+        const pausedJob = await PausedQueue.getJob(queueItem.id);
+        if (pausedJob) {
+          pausedJobs.push(pausedJob);
+          return { jobId: queueItem.id, success: true, queue: "paused" };
         }
-      })
-    );
+
+        return {
+          jobId: queueItem.id,
+          success: false,
+          error: "Job not found in PausedQueue",
+        };
+      } catch (error) {
+        logger.error(`Failed to process job ${queueItem.id}:`, error);
+        return {
+          jobId: queueItem.id,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    });
+
+    const results = await Promise.all(jobPromises);
+
+    if (pausedJobs.length > 0) {
+      try {
+        await Promise.all(
+          pausedJobs.map(async (job) => {
+            await EmailQueue.add(
+              "email-job",
+              { ...job.data },
+              {
+                jobId: job.id,
+                delay: job.data.timeLeft,
+                attempts: job.data.attempts,
+              }
+            );
+
+            await job.remove();
+          })
+        );
+
+        const jobIds = pausedJobs.map((job) => job.id);
+        await queuesQueries.updateManyStatusQuery(jobIds, { status: "QUEUED" });
+
+        totalJobsResumed += pausedJobs.length;
+      } catch (error) {
+        logger.error("Failed to resume some paused queue jobs:", error);
+      }
+    }
 
     const successCount = results.filter((r) => r.success).length;
     const failureCount = results.filter((r) => !r.success).length;
 
     return {
+      success: true,
       successCount,
       failureCount,
       totalJobsFound,
@@ -420,12 +519,11 @@ export class QueueService {
 
     const { jobs } = await queuesQueries.getAllQuery(queryParams);
     const totalJobsFound = jobs.length;
-    let totalJobsProcessed = 0;
-    let totalJobsRemoved = 0;
 
     if (jobs.length === 0) {
       logger.info("No paused or active jobs found for the provided orders");
       return {
+        success: true,
         successCount: 0,
         failureCount: 0,
         totalJobsFound: 0,
@@ -435,45 +533,88 @@ export class QueueService {
       };
     }
 
-    const results = await Promise.all(
-      jobs.map(async (queueItem: Job) => {
-        try {
-          totalJobsProcessed++;
+    const emailJobs: any[] = [];
+    const pausedJobs: any[] = [];
+    const tagCountMap = new Map<number, number>();
+    let totalJobsProcessed = 0;
+    let totalJobsRemoved = 0;
 
-          const job =
-            (await PausedQueue.getJob(queueItem.id)) ||
-            (await EmailQueue.getJob(queueItem.id));
+    const jobPromises = jobs.map(async (queueItem: Job) => {
+      try {
+        totalJobsProcessed++;
 
-          if (job) {
-            const tagId = job.data.tagId;
-            await tagQueries.updateTagCount(tagId, "decrement");
-            await job.remove();
+        const emailJob = await EmailQueue.getJob(queueItem.id);
+        if (emailJob) {
+          emailJobs.push(emailJob);
+
+          const jobState = await emailJob.getState();
+          const tagId = emailJob.data.tagId;
+          if (jobState !== "completed" && jobState !== "failed") {
+            tagCountMap.set(tagId, (tagCountMap.get(tagId) || 0) + 1);
           }
 
-          await queuesQueries.updateStatusQuery(queueItem.id, {
-            status: "INACTIVE",
-          });
-
-          totalJobsRemoved++;
-          return {
-            jobId: queueItem.id,
-            success: true,
-          };
-        } catch (error) {
-          logger.error(`Failed to remove job ${queueItem.id}:`, error);
-          return {
-            jobId: queueItem.id,
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error",
-          };
+          return { jobId: queueItem.id, success: true, queue: "email" };
         }
-      })
-    );
+
+        const pausedJob = await PausedQueue.getJob(queueItem.id);
+        if (pausedJob) {
+          pausedJobs.push(pausedJob);
+
+          const jobState = await pausedJob.getState();
+          const tagId = pausedJob.data.tagId;
+          if (jobState !== "completed" && jobState !== "failed") {
+            tagCountMap.set(tagId, (tagCountMap.get(tagId) || 0) + 1);
+          }
+
+          return { jobId: queueItem.id, success: true, queue: "paused" };
+        }
+
+        return { jobId: queueItem.id, success: true, queue: "none" };
+      } catch (error) {
+        logger.error(`Failed to process job ${queueItem.id}:`, error);
+        return {
+          jobId: queueItem.id,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    });
+
+    const results = await Promise.all(jobPromises);
+
+    if (emailJobs.length > 0) {
+      try {
+        await Promise.all(emailJobs.map((job) => job.remove()));
+        totalJobsRemoved += emailJobs.length;
+      } catch (error) {
+        logger.error("Failed to remove some email queue jobs:", error);
+      }
+    }
+
+    if (pausedJobs.length > 0) {
+      try {
+        await Promise.all(pausedJobs.map((job) => job.remove()));
+        totalJobsRemoved += pausedJobs.length;
+      } catch (error) {
+        logger.error("Failed to remove some paused queue jobs:", error);
+      }
+    }
+
+    if (tagCountMap.size > 0) {
+      const tagUpdates = Array.from(tagCountMap.entries()).map(
+        ([id, count]) => ({ id, count })
+      );
+      await tagQueries.updateTagCountMany(tagUpdates, "decrement");
+    }
+
+    const jobIds = jobs.map((job) => job.id);
+    await queuesQueries.updateManyStatusQuery(jobIds, { status: "INACTIVE" });
 
     const successCount = results.filter((r) => r.success).length;
     const failureCount = results.filter((r) => !r.success).length;
 
     return {
+      success: true,
       successCount,
       failureCount,
       totalJobsFound,
@@ -492,7 +633,6 @@ export class QueueService {
       tagIds,
       includeTotalCount: true,
     };
-
 
     const { jobs } = await queuesQueries.getAllQuery(queryParams);
     const totalJobsFound = jobs.length;
@@ -515,6 +655,7 @@ export class QueueService {
     const tagCountMap = new Map<number, number>();
     let totalJobsProcessed = 0;
     let totalJobsRemoved = 0;
+
     const jobPromises = jobs.map(async (queueItem: Job) => {
       try {
         totalJobsProcessed++;
@@ -522,21 +663,30 @@ export class QueueService {
         const emailJob = await EmailQueue.getJob(queueItem.id);
         if (emailJob) {
           emailJobs.push(emailJob);
+
+          const jobState = await emailJob.getState();
           const tagId = emailJob.data.tagId;
-          tagCountMap.set(tagId, (tagCountMap.get(tagId) || 0) + 1);
-          return { jobId: queueItem.id, success: true, queue: 'email' };
+          if (jobState !== "completed" && jobState !== "failed") {
+            tagCountMap.set(tagId, (tagCountMap.get(tagId) || 0) + 1);
+          }
+
+          return { jobId: queueItem.id, success: true, queue: "email" };
         }
 
         const pausedJob = await PausedQueue.getJob(queueItem.id);
         if (pausedJob) {
           pausedJobs.push(pausedJob);
 
+          const jobState = await pausedJob.getState();
           const tagId = pausedJob.data.tagId;
-          tagCountMap.set(tagId, (tagCountMap.get(tagId) || 0) + 1);
-          return { jobId: queueItem.id, success: true, queue: 'paused' };
+          if (jobState !== "completed" && jobState !== "failed") {
+            tagCountMap.set(tagId, (tagCountMap.get(tagId) || 0) + 1);
+          }
+
+          return { jobId: queueItem.id, success: true, queue: "paused" };
         }
 
-        return { jobId: queueItem.id, success: true, queue: 'none' };
+        return { jobId: queueItem.id, success: true, queue: "none" };
       } catch (error) {
         logger.error(`Failed to process job ${queueItem.id}:`, error);
         return {
@@ -551,22 +701,27 @@ export class QueueService {
 
     if (emailJobs.length > 0) {
       try {
-        await Promise.all(emailJobs.map(job => job.remove()));
+        await Promise.all(emailJobs.map((job) => job.remove()));
         totalJobsRemoved += emailJobs.length;
       } catch (error) {
         logger.error("Failed to remove some email queue jobs:", error);
       }
     }
+
     if (pausedJobs.length > 0) {
       try {
-        await Promise.all(pausedJobs.map(job => job.remove()));
+        await Promise.all(pausedJobs.map((job) => job.remove()));
         totalJobsRemoved += pausedJobs.length;
       } catch (error) {
         logger.error("Failed to remove some paused queue jobs:", error);
       }
     }
+
     if (tagCountMap.size > 0) {
-      const tagUpdates = Array.from(tagCountMap.entries()).map(([id, count]) => ({ id, count }));
+      logger.warn(tagCountMap.size, tagCountMap);
+      const tagUpdates = Array.from(tagCountMap.entries()).map(
+        ([id, count]) => ({ id, count })
+      );
       await tagQueries.updateTagCountMany(tagUpdates, "decrement");
     }
 
