@@ -4,22 +4,29 @@ import logger from "../../utils/logger";
 
 type CountOperation = "increment" | "decrement";
 
-export async function updateTagCount(tagId: number, operation: CountOperation) {
+export async function updateTagCount(
+  tagId: number,
+  operation: CountOperation,
+  count: number = 1
+) {
   try {
     const tag = await tagQueries.getTag(tagId);
     if (tag.error) {
-      return;
+      return {
+        success: false,
+        error: tag.error
+      };
     }
 
     const updatedTag = await prisma.tag.update({
       where: { id: tagId },
       data: {
         jobsCount:
-          operation === "increment" ? { increment: 1 } : { decrement: 1 },
+          operation === "increment"
+            ? { increment: count }
+            : { decrement: count },
       },
     });
-
-
 
     return {
       success: true,

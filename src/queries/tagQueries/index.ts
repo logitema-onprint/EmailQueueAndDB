@@ -3,8 +3,7 @@ import { deleteTag } from "./deleteQuery";
 import { getAllTags } from "./getManyQuery";
 import { getTag } from "./getQuery";
 import { updateTagCount } from "./updateCountQuery";
-import { updateManyCount } from "./updateManyCount";
-
+import { updateTagCountMany } from "./updateManyCount";
 import { updateTag } from "./updateQuery";
 import { updateTagStatus } from "./updateStatusQuery";
 
@@ -16,5 +15,5 @@ export const tagQueries = {
   updateTag,
   updateTagStatus,
   updateTagCount,
-  updateManyCount,
+  updateTagCountMany,
 };

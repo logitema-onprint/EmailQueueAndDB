@@ -4,15 +4,16 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider        = "postgresql"
+  url             = env("DATABASE_URL")
+  
 }
 
 model Order {
-  id             Int        @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   phoneNumber    String
   userName       String
-  userSurname    String? 
+  userSurname    String?
   companyName    String?
   paymentDetails String
   subTotal       Float
@@ -23,8 +24,8 @@ model Order {
   productName    String
   productId      Int
   jobs           Job[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([salesAgentId])
   @@index([country])
@@ -34,7 +35,7 @@ model Order {
 model Rule {
   id        Int      @id @default(autoincrement())
   productId Int
-  ruleName      String
+  ruleName  String
   tags      Int[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -43,9 +44,9 @@ model Rule {
 }
 
 model Tag {
-  id        Int      @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   tagName      String
-  scheduledFor BigInt   
+  scheduledFor BigInt
   jobsCount    Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -56,18 +57,18 @@ model Tag {
 
 model Job {
   id           String    @id
-  orderId      Int?      
-  tagId        Int    
-  tagName      String    
-  status       String   
-  scheduledFor BigInt   
-  attempts     Int       @default(0)   
-  error        String?   
-  processedAt  DateTime? 
-  completedAt  DateTime?  
-  createdAt    DateTime  @default(now())   
-  updatedAt    DateTime  @updatedAt    
-  order        Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade) 
+  orderId      Int?
+  tagId        Int
+  tagName      String
+  status       String
+  scheduledFor BigInt
+  attempts     Int       @default(0)
+  error        String?
+  processedAt  DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  order        Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([status, createdAt])

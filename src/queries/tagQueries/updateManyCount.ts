@@ -4,40 +4,39 @@ import logger from "../../utils/logger";
 
 type CountOperation = "increment" | "decrement";
 
-interface TagUpdateResult {
-  success: boolean;
-  data?: any;
-  error?: string;
-}
 
-export async function updateManyCount(
-  tagCounts: { [tagId: number]: number },
-  operation: CountOperation,
-  totalProcessed: number
+export async function updateTagCountMany(
+  tagCounts: { id: number; count: number }[],
+  operation: CountOperation
 ) {
   try {
-    const result = await prisma.tag.updateMany({
-      where: {
-        id: { in: Object.keys(tagCounts).map(Number) },
-      },
-      data: {
-        jobsCount:
-          operation === "increment"
-            ? { increment: totalProcessed }
-            : { decrement: totalProcessed },
-      },
-    });
+
+    const updates = await prisma.$transaction(
+      tagCounts.map(({ id, count }) =>
+        prisma.tag.update({
+          where: { id },
+          data: {
+            jobsCount:
+              operation === "increment"
+                ? { increment: count }
+                : { decrement: count },
+          },
+        })
+      )
+    );
 
     return {
       success: true,
-      data: result,
+      data: updates,
+      count: updates.length
     };
   } catch (error) {
-    logger.error(`Failed to update tag counts: ${error}`);
+    logger.error(`Failed to bulk update tag counts: ${error}`);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to update tag counts",
+      error: error instanceof Error
+        ? error.message
+        : "Failed to update tag job counts in bulk",
     };
   }
 }

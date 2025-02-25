@@ -32,33 +32,32 @@ export class QueueService {
       }
 
       logger.info("fired");
-
       logger.info(orderIds, tags);
 
       const orderIdArray = Array.isArray(orderIds) ? orderIds : [orderIds];
       const timestamp = new Date().toISOString();
-      const createdJobs = [];
+      let bulkJobs = [];
+      let queueItems = [];
+      const tagCountMap = new Map<number, number>();
 
       for (const orderId of orderIdArray) {
         for (const tag of tags) {
           const jobId = uuidv4();
           const delay = bigIntToNumber(tag.scheduledFor);
-
-          const job = await EmailQueue.add(
-            "email-job",
-            {
+          bulkJobs.push({
+            name: "email-job",
+            data: {
               jobId: jobId,
               tagName: tag.tagName,
               tagId: tag.id,
             },
-            {
+            opts: {
               jobId: jobId,
               delay: delay,
               attempts: 3,
             }
-          );
-
-          const queueItem: JobItem = {
+          });
+          queueItems.push({
             id: jobId,
             orderId,
             tagId: tag.id,
@@ -66,28 +65,40 @@ export class QueueService {
             status: "QUEUED",
             updatedAt: timestamp,
             scheduledFor: tag.scheduledFor,
-            processedAt: undefined,
+            processedAt: null,
             error: null,
-          };
-
-          const result = await queuesQueries.createQueue(queueItem);
-          await tagQueries.updateTagCount(tag.id, "increment");
-
-          if (result.error) {
-            await job.remove();
-            throw new Error(
-              `Failed to create queue for tag ${tag.tagName}: ${result.error}`
-            );
-          }
-
-          createdJobs.push({
-            queueId: jobId,
-            jobId: job.id,
-            tag: tag.tagName,
-            orderId,
           });
+          tagCountMap.set(tag.id, (tagCountMap.get(tag.id) || 0) + 1);
         }
       }
+
+
+      const jobs = await EmailQueue.addBulk(bulkJobs);
+
+
+      const queueResult = await queuesQueries.createQueueBulk(queueItems)
+
+      if (!queueResult.success) {
+        for (const job of jobs) {
+          await job.remove();
+        }
+        throw new Error(`Failed to create queue records: ${queueResult.error}`);
+      }
+
+
+      const tagUpdates = Array.from(tagCountMap.entries()).map(([id, count]) => ({ id, count }));
+      const tagUpdateResult = await tagQueries.updateTagCountMany(tagUpdates, "increment");
+
+      if (!tagUpdateResult.success) {
+        logger.error(`Failed to update tag counts: ${tagUpdateResult.error}`);
+      }
+
+      const createdJobs = jobs.map((job, index) => ({
+        queueId: bulkJobs[index].opts.jobId,
+        jobId: job.id,
+        tag: bulkJobs[index].data.tagName,
+        orderId: queueItems[index].orderId,
+      }));
 
       return {
         success: true,
@@ -186,6 +197,7 @@ export class QueueService {
     try {
       const removalPromises = jobIds.map(async (jobId) => {
         const emailQueueJob = await EmailQueue.getJob(jobId);
+
         if (emailQueueJob) {
           await emailQueueJob.remove();
           await tagQueries.updateTagCount(
@@ -481,10 +493,9 @@ export class QueueService {
       includeTotalCount: true,
     };
 
+
     const { jobs } = await queuesQueries.getAllQuery(queryParams);
     const totalJobsFound = jobs.length;
-    let totalJobsProcessed = 0;
-    let totalJobsRemoved = 0;
 
     if (jobs.length === 0) {
       logger.info("No jobs found for the provided orders and tags");
@@ -499,36 +510,65 @@ export class QueueService {
       };
     }
 
-    const results = await Promise.all(
-      jobs.map(async (queueItem: Job) => {
-        try {
-          totalJobsProcessed++;
+    const emailJobs: any[] = [];
+    const pausedJobs: any[] = [];
+    const tagCountMap = new Map<number, number>();
+    let totalJobsProcessed = 0;
+    let totalJobsRemoved = 0;
+    const jobPromises = jobs.map(async (queueItem: Job) => {
+      try {
+        totalJobsProcessed++;
 
-          const job =
-            (await PausedQueue.getJob(queueItem.id)) ||
-            (await EmailQueue.getJob(queueItem.id));
-
-          if (job) {
-            const tagId = job.data.tagId;
-            await tagQueries.updateTagCount(tagId, "decrement");
-            await job.remove();
-          }
-
-          totalJobsRemoved++;
-          return {
-            jobId: queueItem.id,
-            success: true,
-          };
-        } catch (error) {
-          logger.error(`Failed to remove job ${queueItem.id}:`, error);
-          return {
-            jobId: queueItem.id,
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error",
-          };
+        const emailJob = await EmailQueue.getJob(queueItem.id);
+        if (emailJob) {
+          emailJobs.push(emailJob);
+          const tagId = emailJob.data.tagId;
+          tagCountMap.set(tagId, (tagCountMap.get(tagId) || 0) + 1);
+          return { jobId: queueItem.id, success: true, queue: 'email' };
         }
-      })
-    );
+
+        const pausedJob = await PausedQueue.getJob(queueItem.id);
+        if (pausedJob) {
+          pausedJobs.push(pausedJob);
+
+          const tagId = pausedJob.data.tagId;
+          tagCountMap.set(tagId, (tagCountMap.get(tagId) || 0) + 1);
+          return { jobId: queueItem.id, success: true, queue: 'paused' };
+        }
+
+        return { jobId: queueItem.id, success: true, queue: 'none' };
+      } catch (error) {
+        logger.error(`Failed to process job ${queueItem.id}:`, error);
+        return {
+          jobId: queueItem.id,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    });
+
+    const results = await Promise.all(jobPromises);
+
+    if (emailJobs.length > 0) {
+      try {
+        await Promise.all(emailJobs.map(job => job.remove()));
+        totalJobsRemoved += emailJobs.length;
+      } catch (error) {
+        logger.error("Failed to remove some email queue jobs:", error);
+      }
+    }
+    if (pausedJobs.length > 0) {
+      try {
+        await Promise.all(pausedJobs.map(job => job.remove()));
+        totalJobsRemoved += pausedJobs.length;
+      } catch (error) {
+        logger.error("Failed to remove some paused queue jobs:", error);
+      }
+    }
+    if (tagCountMap.size > 0) {
+      const tagUpdates = Array.from(tagCountMap.entries()).map(([id, count]) => ({ id, count }));
+      await tagQueries.updateTagCountMany(tagUpdates, "decrement");
+    }
 
     await queuesQueries.deleteManyJobs({
       orderIds,

@@ -31,6 +31,7 @@ export const deleteManyOrders: RequestHandler = async (
             success: true,
             message: "Deletion process started",
             jobId: job.id,
+            filters,
             totalCount
         });
 
