@@ -1,5 +1,5 @@
-import { createMassOrders } from "./createMassOrder";
+import { createMassOrder } from "./createMassOrder";
 
 export const testOrderControllers = {
-    createMassOrders
+    createMassOrder
 }

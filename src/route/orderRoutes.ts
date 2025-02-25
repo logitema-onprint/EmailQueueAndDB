@@ -27,7 +27,7 @@ export const orderRoutes = async (server: Express) => {
     orderController.inactiveFilteredOrders
   );
 
-  server.post("/api/order/test", testOrderControllers.createMassOrders);
+  server.post("/api/order/test", testOrderControllers.createMassOrder);
 
   server.post("/api/orders/pause", orderController.pauseManyOrders);
   server.post("/api/orders/resume", orderController.resumeManyOrders);

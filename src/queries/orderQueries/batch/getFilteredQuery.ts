@@ -52,40 +52,155 @@ export async function getFilteredOrders(
     if (filters.searchTerm) {
       const orderId = parseInt(filters.searchTerm);
       if (!isNaN(orderId)) {
+        // Handle numeric search as order ID
         where.id = filters.isNot ? { not: orderId } : orderId;
       } else {
-        if (filters.isNot) {
-          where.AND = [
-            {
-              userName: {
-                not: { contains: filters.searchTerm, mode: "insensitive" },
+        // Split search term into words for more flexible searching
+        const searchTerms = filters.searchTerm.trim().split(/\s+/);
+
+        if (searchTerms.length === 1) {
+          // Single word search (partial match on either userName or userSurname)
+          if (filters.isNot) {
+            where.AND = [
+              {
+                userName: {
+                  not: { contains: searchTerms[0], mode: "insensitive" },
+                },
               },
-            },
-            {
-              userSurname: {
-                not: { contains: filters.searchTerm, mode: "insensitive" },
+              {
+                userSurname: {
+                  not: { contains: searchTerms[0], mode: "insensitive" },
+                },
               },
-            },
-          ];
+            ];
+          } else {
+            where.OR = [
+              {
+                userName: {
+                  contains: searchTerms[0],
+                  mode: "insensitive",
+                },
+              },
+              {
+                userSurname: {
+                  contains: searchTerms[0],
+                  mode: "insensitive",
+                },
+              },
+            ];
+          }
         } else {
-          where.OR = [
-            {
-              userName: {
-                contains: filters.searchTerm,
-                mode: "insensitive",
-              },
-            },
-            {
-              userSurname: {
-                contains: filters.searchTerm,
-                mode: "insensitive",
-              },
-            },
-          ];
+
+          if (filters.isNot) {
+
+            where.AND = [
+              {
+                OR: [
+                  {
+                    AND: searchTerms.map(term => ({
+                      userName: {
+                        not: { contains: term, mode: "insensitive" }
+                      }
+                    }))
+                  },
+                  {
+                    AND: searchTerms.map(term => ({
+                      userSurname: {
+                        not: { contains: term, mode: "insensitive" }
+                      }
+                    }))
+                  }
+                ]
+              }
+            ];
+          } else {
+            if (searchTerms.length === 2) {
+              where.OR = [
+                {
+                  AND: [
+                    {
+                      userName: {
+                        equals: searchTerms[0],
+                        mode: "insensitive",
+                      }
+                    },
+                    {
+                      userSurname: {
+                        equals: searchTerms[1],
+                        mode: "insensitive",
+                      }
+                    }
+                  ]
+                },
+                {
+                  AND: [
+                    {
+                      userName: {
+                        contains: searchTerms[0],
+                        mode: "insensitive",
+                      }
+                    },
+                    {
+                      userSurname: {
+                        contains: searchTerms[1],
+                        mode: "insensitive",
+                      }
+                    }
+                  ]
+                }
+              ];
+            } else {
+              where.OR = [
+                {
+                  AND: [
+                    {
+                      userName: {
+                        contains: searchTerms[0],
+                        mode: "insensitive",
+                      }
+                    },
+                    {
+                      userSurname: {
+                        contains: searchTerms[searchTerms.length - 1],
+                        mode: "insensitive",
+                      }
+                    }
+                  ]
+                },
+                ...searchTerms.map(term => ({
+                  userName: {
+                    contains: term,
+                    mode: "insensitive",
+                  }
+                })),
+                ...searchTerms.map(term => ({
+                  userSurname: {
+                    contains: term,
+                    mode: "insensitive",
+                  }
+                })),
+                {
+                  OR: [
+                    {
+                      userName: {
+                        contains: filters.searchTerm,
+                        mode: "insensitive",
+                      }
+                    },
+                    {
+                      userSurname: {
+                        contains: filters.searchTerm,
+                        mode: "insensitive",
+                      }
+                    }
+                  ]
+                }
+              ];
+            }
+          }
         }
       }
     }
-
     if (filters.companyName) {
       if (filters.isNot) {
         where.companyName = {
@@ -207,17 +322,17 @@ export async function getFilteredOrders(
             AND: [
               ...(filters.tagIds?.length
                 ? [
-                    {
-                      tagId: { in: filters.tagIds },
-                    },
-                  ]
+                  {
+                    tagId: { in: filters.tagIds },
+                  },
+                ]
                 : []),
               ...(filters.tagStatuses?.length
                 ? [
-                    {
-                      status: { in: filters.tagStatuses },
-                    },
-                  ]
+                  {
+                    status: { in: filters.tagStatuses },
+                  },
+                ]
                 : []),
             ],
           },
@@ -228,17 +343,17 @@ export async function getFilteredOrders(
             AND: [
               ...(filters.tagIds?.length
                 ? [
-                    {
-                      tagId: { in: filters.tagIds },
-                    },
-                  ]
+                  {
+                    tagId: { in: filters.tagIds },
+                  },
+                ]
                 : []),
               ...(filters.tagStatuses?.length
                 ? [
-                    {
-                      status: { in: filters.tagStatuses },
-                    },
-                  ]
+                  {
+                    status: { in: filters.tagStatuses },
+                  },
+                ]
                 : []),
             ],
           },
