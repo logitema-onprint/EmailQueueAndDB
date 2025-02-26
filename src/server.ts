@@ -14,7 +14,15 @@ import routes from "./route";
 const server = express();
 
 server.use(helmet());
-server.use(cors({ credentials: true }));
+server.use(
+  cors({
+    origin: [
+      "https://www.onprintvacations.site",
+      "http://localhost:3000",
+    ],
+    credentials: true,
+  })
+);
 server.use(morgan("combined"));
 server.use(responseTime());
 
@@ -41,10 +49,9 @@ server.use(
   })
 );
 
-
 server.listen(config.server.port, () => {
   log.info(
     `🚀 Server running on: http://${config.server.domain}:${config.server.port}`
   );
-  routes(server)
+  routes(server);
 });
