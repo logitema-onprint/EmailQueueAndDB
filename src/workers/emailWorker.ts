@@ -49,17 +49,17 @@ const worker = new Worker<EmailJob>(
 
 worker.on("completed", async (job: Job<EmailJob>) => {
   const { jobId, tagId } = job.data;
-  const updateStatus = queuesQueries.updateStatusQuery(jobId, {
+  const updateStatus = await queuesQueries.updateStatusQuery(jobId, {
     status: "SENT",
     completed: true,
   });
 
   await tagQueries.updateTagCount(tagId, "decrement");
 
-  await Promise.all([updateStatus]);
+
 });
 
-worker.on("active", async (job: Job<EmailJob>) => {});
+worker.on("active", async (job: Job<EmailJob>) => { });
 
 worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
   if (!job) {

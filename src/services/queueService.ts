@@ -476,7 +476,7 @@ export class QueueService {
               {
                 jobId: job.id,
                 delay: job.data.timeLeft,
-                attempts: job.data.attempts,
+                attempts: 3,
               }
             );
 

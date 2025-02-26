@@ -23,14 +23,14 @@ export const updateStatusQuery = async (
     status: update.status,
     ...(update.incrementAttempts && { attempts: { increment: 1 } }),
     ...(update.processed && { processedAt: timestamp }),
-    ...(update.completed && { completedAt: timestamp}),
+    ...(update.completed && { completedAt: timestamp }),
     ...(update.error && { error: update.error }),
   };
 
   const job = await QueueService.getJobFromQueues(jobId);
 
   if (!job?.data?.id) {
-    logger.warn("Job not yet exist or lost");
+    logger.warn("Job not yet exist or lost, tagId:", job.data?.tagId);
     return;
   }
   await prisma.job.update({
