@@ -9,7 +9,7 @@ export const getFilteredOrders: RequestHandler = async (
 ) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const pageSize = parseInt(req.query.limit as string) || 25;
+    const pageSize = parseInt(req.query.limit as string) || 100;
     const filters = req.body;
 
     if (page < 1) {
