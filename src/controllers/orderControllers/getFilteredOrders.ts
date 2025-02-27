@@ -11,6 +11,7 @@ export const getFilteredOrders: RequestHandler = async (
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.limit as string) || 100;
     const filters = req.body;
+    logger.info(`Controller received pageSize: ${pageSize}`);
 
     if (page < 1) {
       res.status(400).json({
