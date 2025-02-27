@@ -4,9 +4,9 @@ import fs from 'fs';
 import log from '../utils/logger';
 import { processJsonFile } from './processJsonFile';
 
-const HOTFOLDER_PATH = path.resolve(process.cwd(), 'hotfolder');
-const PROCESSED_PATH = path.resolve(process.cwd(), 'hotfolder/processed');
-const ERROR_PATH = path.resolve(process.cwd(), 'hotfolder/error');
+const HOTFOLDER_PATH = path.resolve('/home/onprint/orders');
+const PROCESSED_PATH = path.resolve(process.cwd(), '/home/onprint/orders/processed');
+const ERROR_PATH = path.resolve(process.cwd(), '/home/onprint/orders/error');
 
 function ensureDirectoryExist() {
     [HOTFOLDER_PATH, PROCESSED_PATH, ERROR_PATH].forEach(dir => {
