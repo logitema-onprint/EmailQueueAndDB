@@ -27,7 +27,7 @@ export async function getFilteredOrders(
 ) {
   try {
     const where: any = {};
-
+     console.log(pageSize)
     if (filters.tagIds?.length && !filters.isNot) {
       const existingTags = await prisma.job.findMany({
         select: {
@@ -393,6 +393,7 @@ export async function getFilteredOrders(
       success: true,
       totalCount,
       data: orders,
+      pageSize
     };
   } catch (error) {
     logger.error("Failed to fetch filtered orders:", error);

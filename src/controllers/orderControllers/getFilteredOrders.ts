@@ -7,6 +7,7 @@ export const getFilteredOrders: RequestHandler = async (
   req: Request,
   res: Response
 ) => {
+  console.log(req.query.limit)
   try {
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.limit as string) || 100;
@@ -33,6 +34,7 @@ export const getFilteredOrders: RequestHandler = async (
       res.status(400).json({
         success: false,
         totalCount: data.totalCount,
+        pageSize: data.pageSize,
         message: "No data with this query",
         errorMessage: data.error,
       });
