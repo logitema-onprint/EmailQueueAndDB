@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import responseTime from "response-time";
 import healthcheck from "express-healthcheck";
 import "express-async-errors";
+import cookieParser from "cookie-parser";
 
 import log from "./utils/logger";
 import config from "./config";
@@ -16,10 +17,7 @@ const server = express();
 server.use(helmet());
 server.use(
   cors({
-    origin: [
-      "https://www.onprintvacations.site",
-      "http://localhost:3000",
-    ],
+    origin: ["https://www.onprintvacations.site", "http://localhost:3000"],
     credentials: true,
   })
 );
@@ -29,6 +27,8 @@ server.use(responseTime());
 server.use(express.json());
 server.use(express.urlencoded({ extended: true }));
 server.use(express.static("public"));
+server.use(cookieParser());
+
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

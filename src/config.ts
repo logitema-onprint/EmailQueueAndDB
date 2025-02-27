@@ -11,7 +11,8 @@ const requiredEnvVars = {
   REGION: process.env.REGION,
   QUEUE_TABLE_NAME: process.env.QUEUE_TABLE_NAME,
   QUEUE_TAG_TABLE: process.env.QUEUE_TAG_TABLE,
-  ORDER_TABLE_NAME: process.env.ORDER_TABLE_NAME
+  ORDER_TABLE_NAME: process.env.ORDER_TABLE_NAME,
+  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
 } as const;
 
 const missingVars = Object.entries(requiredEnvVars)
@@ -47,8 +48,9 @@ const config = {
   },
   next: {
     secret: process.env.REVALIDATE_SECRET_QUEUES,
-    nextUrl: process.env.NEXTJS_URL
-  }
+    nextUrl: process.env.NEXTJS_URL,
+    nextSecret: process.env.NEXTAUTH_SECRET,
+  },
 } as const;
 
 export default config;
