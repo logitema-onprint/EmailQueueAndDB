@@ -10,6 +10,7 @@ import "express-async-errors";
 import log from "./utils/logger";
 import config from "./config";
 import routes from "./route";
+import initHotfolder from "./hotfolder";
 
 const server = express();
 
@@ -54,4 +55,6 @@ server.listen(config.server.port, () => {
     `🚀 Server running on: http://${config.server.domain}:${config.server.port}`
   );
   routes(server);
+  initHotfolder();
+  log.info("📁 Hotfolder monitoring started");
 });
