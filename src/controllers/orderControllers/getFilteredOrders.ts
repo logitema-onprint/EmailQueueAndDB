@@ -9,7 +9,7 @@ export const getFilteredOrders: RequestHandler = async (
 ) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const itemsPerPage = parseInt(req.query.limit as string) || 25;
+    const pageSize = parseInt(req.query.limit as string) || 25;
     const filters = req.body;
 
     if (page < 1) {
@@ -19,12 +19,12 @@ export const getFilteredOrders: RequestHandler = async (
       });
     }
 
-    logger.info(filters);
+
 
     const data = await orderQueries.getFilteredOrders(
       filters,
       page,
-      itemsPerPage,
+      pageSize,
       false
     );
 
@@ -46,13 +46,13 @@ export const getFilteredOrders: RequestHandler = async (
         items: transformedData,
         pagination: {
           currentPage: page,
-          totalPages: Math.ceil(data.totalCount / itemsPerPage),
-          itemsPerPage,
+          totalPages: Math.ceil(data.totalCount / pageSize),
+          pageSize,
           totalItems: data.totalCount,
           nextPage:
-            page < Math.ceil(data.totalCount / itemsPerPage) ? page + 1 : null,
+            page < Math.ceil(data.totalCount / pageSize) ? page + 1 : null,
           previousPage: page > 1 ? page - 1 : null,
-          hasNextPage: page * itemsPerPage < data.totalCount,
+          hasNextPage: page * pageSize < data.totalCount,
           hasPreviousPage: page > 1,
         },
       });
