@@ -2,7 +2,7 @@ import prisma from "../../services/prisma";
 import logger from "../../utils/logger";
 
 export async function getAllOrders({
-  limit = 50,
+  limit = 25,
   page = 1,
   includeTotalCount = false,
 }) {

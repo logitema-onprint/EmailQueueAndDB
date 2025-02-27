@@ -27,7 +27,7 @@ export async function getFilteredOrders(
 ) {
   try {
     const where: any = {};
-
+     console.log(pageSize)
     if (filters.tagIds?.length && !filters.isNot) {
       const existingTags = await prisma.job.findMany({
         select: {
@@ -52,14 +52,12 @@ export async function getFilteredOrders(
     if (filters.searchTerm) {
       const orderId = parseInt(filters.searchTerm);
       if (!isNaN(orderId)) {
-        // Handle numeric search as order ID
+
         where.id = filters.isNot ? { not: orderId } : orderId;
       } else {
-        // Split search term into words for more flexible searching
         const searchTerms = filters.searchTerm.trim().split(/\s+/);
 
         if (searchTerms.length === 1) {
-          // Single word search (partial match on either userName or userSurname)
           if (filters.isNot) {
             where.AND = [
               {
@@ -379,8 +377,8 @@ export async function getFilteredOrders(
     }
 
     page = Math.max(1, page || 1);
-    pageSize = Math.max(1, Math.min(100, pageSize || 25));
-
+    pageSize = Math.max(1, Math.min(100, pageSize || 100));
+    logger.info("Pagesize", pageSize)
     const orders = await prisma.order.findMany({
       where,
       include: {
@@ -395,6 +393,7 @@ export async function getFilteredOrders(
       success: true,
       totalCount,
       data: orders,
+      pageSize
     };
   } catch (error) {
     logger.error("Failed to fetch filtered orders:", error);

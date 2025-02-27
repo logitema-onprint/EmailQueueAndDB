@@ -11,6 +11,7 @@
     "@types/bull": "^4.10.4",
     "bullmq": "^5.40.2",
     "cookie-parser": "^1.4.7",
+    "chokidar": "^4.0.3",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
     "debug": "^4.4.0",

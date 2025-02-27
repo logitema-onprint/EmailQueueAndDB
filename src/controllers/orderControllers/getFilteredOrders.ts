@@ -7,10 +7,12 @@ export const getFilteredOrders: RequestHandler = async (
   req: Request,
   res: Response
 ) => {
+  console.log(req.query.limit)
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const itemsPerPage = 25;
+    const pageSize = parseInt(req.query.limit as string) || 100;
     const filters = req.body;
+    logger.info(`Controller received pageSize: ${pageSize}`);
 
     if (page < 1) {
       res.status(400).json({
@@ -19,12 +21,12 @@ export const getFilteredOrders: RequestHandler = async (
       });
     }
 
-    logger.info(filters);
+
 
     const data = await orderQueries.getFilteredOrders(
       filters,
       page,
-      itemsPerPage,
+      pageSize,
       false
     );
 
@@ -32,6 +34,7 @@ export const getFilteredOrders: RequestHandler = async (
       res.status(400).json({
         success: false,
         totalCount: data.totalCount,
+        pageSize: data.pageSize,
         message: "No data with this query",
         errorMessage: data.error,
       });
@@ -46,13 +49,13 @@ export const getFilteredOrders: RequestHandler = async (
         items: transformedData,
         pagination: {
           currentPage: page,
-          totalPages: Math.ceil(data.totalCount / itemsPerPage),
-          itemsPerPage,
+          totalPages: Math.ceil(data.totalCount / pageSize),
+          pageSize,
           totalItems: data.totalCount,
           nextPage:
-            page < Math.ceil(data.totalCount / itemsPerPage) ? page + 1 : null,
+            page < Math.ceil(data.totalCount / pageSize) ? page + 1 : null,
           previousPage: page > 1 ? page - 1 : null,
-          hasNextPage: page * itemsPerPage < data.totalCount,
+          hasNextPage: page * pageSize < data.totalCount,
           hasPreviousPage: page > 1,
         },
       });
