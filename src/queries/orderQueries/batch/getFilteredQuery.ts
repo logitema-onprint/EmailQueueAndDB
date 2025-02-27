@@ -379,7 +379,7 @@ export async function getFilteredOrders(
     }
 
     page = Math.max(1, page || 1);
-    pageSize = Math.max(1, Math.min(100, pageSize || 25));
+    pageSize = Math.max(1, Math.min(100, pageSize || 100));
 
     const orders = await prisma.order.findMany({
       where,
