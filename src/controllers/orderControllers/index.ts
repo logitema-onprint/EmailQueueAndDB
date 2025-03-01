@@ -1,5 +1,4 @@
 import { addTagsToOrders } from "./batch/addTagsToFilteredOrders";
-import { createOrder } from "./createOrder";
 import { deleteManyOrders } from "./batch/deleteManyOrders";
 import { deleteOrder } from "./deleteOrder";
 import { getAllOrders } from "./getAllOrders";
@@ -23,7 +22,6 @@ import { inactiveSelectedOrders } from "./orderScope/inactiveOrders";
 import { inactiveFilteredOrders } from "./batch/inactiveTagsFromFilteredOrders";
 
 const orderController = {
-  createOrder,
   getOrder,
   getAllOrders,
   deleteOrder,

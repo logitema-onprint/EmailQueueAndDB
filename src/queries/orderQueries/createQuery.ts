@@ -1,47 +1,58 @@
 import prisma from "../../services/prisma";
 
 export interface OrderData {
+  id: number;
+  orderNumber: string;
   phoneNumber: string;
   userName: string;
   userSurname?: string;
   companyName?: string;
-  paymentDetails: string;
-  subTotal: number;
+  paymentMethodName: string;
+  totalAmount: number;
   salesAgentId: string;
   country: string;
+  orderDate: Date;
   city: string;
   customerId: string;
-  productName: string;
-  productId: number;
+  productNames: string[];
+  productIds: string[];
 }
 
 export async function createOrder(orderData: OrderData) {
   try {
     const order = await prisma.order.create({
       data: {
+        id: orderData.id,
+        orderNumber: orderData.orderNumber,
         phoneNumber: orderData.phoneNumber,
         userName: orderData.userName,
         userSurname: orderData.userSurname,
         companyName: orderData.companyName,
-        paymentDetails: orderData.paymentDetails,
-        subTotal: orderData.subTotal,
+        paymentMethodName: orderData.paymentMethodName,
+        totalAmount: orderData.totalAmount,
         salesAgentId: orderData.salesAgentId,
         country: orderData.country,
         city: orderData.city,
+        orderDate: orderData.orderDate,
         customerId: orderData.customerId,
-        productName: orderData.productName,
-        productId: orderData.productId
-      }
+        productNames: orderData.productNames,
+        productIds: orderData.productIds,
+        customer: {
+          connect: {
+            id: orderData.customerId
+          }
+        }
+      },
     });
 
     return {
       success: true,
-      data: order
+      data: order,
     };
   } catch (error) {
     return {
       success: false,
-      error: `Failed to create order: ${error}`
+      error: `Failed to create order: ${error}`,
     };
   }
 }

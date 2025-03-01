@@ -9,38 +9,122 @@ datasource db {
   
 }
 
+model Customer {
+  id                 String   @unique
+  firstName          String
+  lastName           String
+  fullName           String
+  company            String?
+  email              String
+  phoneNumber        String
+  totalOrders        Int      @default(0)
+  totalSpend         Float    @default(0)
+  totalSpendAfterTax Float    @default(0)
+  registerDate       String
+  rewardPoints       String?
+  extrafields        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  orders             Order[] 
+
+  @@index([id])
+  @@index([email])
+  @@index([phoneNumber])
+}
+
 model Order {
-  id             Int      @id @default(autoincrement())
-  phoneNumber    String
-  userName       String
-  userSurname    String?
-  companyName    String?
-  paymentDetails String
-  subTotal       Float
-  salesAgentId   String
-  country        String
-  city           String
-  customerId     String
-  productName    String
-  productId      Int
-  jobs           Job[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                Int    @id 
+  orderNumber       String    
+  userId            String    
+  phoneNumber       String
+  userName          String
+  userSurname       String?
+  companyName       String?
+  paymentMethodName String   
+  totalAmount       Float     
+  salesAgentId      String
+  country           String
+  city              String
+  customerId        String
+  productNames      String[]  
+  productIds        String[] 
+  orderDate         DateTime  @default(now())
+  jobs              Job[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  customer          Customer  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([salesAgentId])
   @@index([country])
-  @@index([subTotal])
+  @@index([totalAmount])
+  @@index([userId])
+  @@index([customerId])
+  OrderProduct OrderProduct[]
+}
+
+model Product {
+  id                     Int           @id @default(autoincrement())
+  product_id             String        @unique
+  products_name          String
+  products_title         String
+  totalOrderedQuantity   Int           @default(0)
+  totalOrderCount        Int           @default(0)
+  totalRevenueBeforeTax  Float         @default(0)
+  totalRevenueAfterTax   Float         @default(0)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  orderProducts          OrderProduct[]
+
+  @@index([product_id])
+}
+
+model OrderProduct {
+  id             Int      @id @default(autoincrement())
+  orderId        Int
+  productId      Int
+  quantity       Int
+  price          Float
+  priceWithTax   Float
+  orderDate      DateTime
+
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@index([orderId])
+  @@index([productId])
+  @@index([orderDate])
+}
+
+model Country {
+  id            Int      @id @default(autoincrement())
+  countryName   String   @unique
+  totalOrders   Int      @default(0)
+  totalRevenue  Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([countryName])
+}
+
+model CountryRevenue {
+  id          Int      @id @default(autoincrement())
+  countryId   Int
+  orderId     Int
+  revenue     Float
+  orderDate   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([countryId])
+  @@index([orderDate])
 }
 
 model Rule {
   id        Int      @id @default(autoincrement())
-  productId Int
   ruleName  String
   tags      Int[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([productId])
 }
 
 model Tag {

@@ -8,11 +8,11 @@ export const createRule: RequestHandler = async (
   res: Response
 ) => {
   try {
-    const { ruleName, tagIds, productId } = req.body;
+    const { ruleName, tagIds } = req.body;
 
     logger.info(req.body);
 
-    if (!ruleName || !tagIds || !productId) {
+    if (!ruleName || !tagIds) {
       res.status(400).json({
         error: true,
         message: "Missing required fields",
@@ -22,7 +22,6 @@ export const createRule: RequestHandler = async (
     const ruleData: RulesData = {
       ruleName,
       tags: tagIds,
-      productId,
     };
 
     const response = await rulesQueries.createQuery(ruleData);

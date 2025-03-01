@@ -21,7 +21,7 @@ export async function createQueue(jobData: JobItem) {
     const job = await prisma.job.create({
       data: {
         id: jobData.id,
-        orderId: jobData?.orderId ?? undefined,
+        orderId: jobData?.orderId as number,
         tagId: jobData.tagId,
         tagName: jobData.tagName,
         status: jobData.status,
