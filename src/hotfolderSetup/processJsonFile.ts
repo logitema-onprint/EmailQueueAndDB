@@ -2,13 +2,7 @@ import fs from "fs";
 import path from "path";
 import log from "../utils/logger";
 import logger from "../utils/logger";
-import { AccountedOrder } from "./accountedOrder";
-import { Order } from "../types/order";
-import { Product } from "../types/product";
-
-import { Country } from "../types/country";
 import { customerQueries } from "../queries/customerQueries";
-import { Customer } from "@prisma/client";
 import { CustumerData } from "../queries/customerQueries/createQuery";
 import { rulesQueries } from "../queries/rulesQueries";
 import { orderQueries } from "../queries/orderQueries";
@@ -18,6 +12,9 @@ import { OrderData } from "../queries/orderQueries/createQuery";
 import { QueueService } from "../services/queueService";
 import { tagQueries } from "../queries/tagQueries";
 import { serializeBigInt } from "../helpers/serializeBigInt";
+import { productQueries } from "../queries/productQueries";
+import { ProductData } from "../queries/productQueries/createProduct";
+import { ProductMetrics } from "../queries/productQueries/updateProductMetrics";
 
 export async function processJsonFile(filePath: string): Promise<boolean> {
   const fileName = path.basename(filePath);
@@ -27,7 +24,6 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
     const jsonData = JSON.parse(fileContent);
 
     log.info(`Processing JSON data from file: ${fileName}`);
-    log.info(`JSON keys found: ${Object.keys(jsonData).join(", ")}`);
 
     let items;
     if (Array.isArray(jsonData.product_details.items)) {
@@ -60,10 +56,7 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
 
     const custumerResponse = await customerQueries.createQuery(custumerData);
 
-    logger.info("55/processJsonFile", custumerResponse.message);
-
     const saleAgentParts = jsonData.sales_agent_name.split(/,\s*tel\.\s*/);
-    logger.info(saleAgentParts);
 
     const salesAgentData: SalesAgenData = {
       fullText: jsonData.sales_agent_name,
@@ -77,6 +70,25 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
     logger.info(salesAgentResponse.message);
     if (!salesAgentResponse.salesAgentId) {
     }
+
+    const productCreationPromises = [];
+    for (const item of items) {
+      const productData: ProductData = {
+        id: item.product_id,
+        title: item.products_title,
+        name: item.products_name,
+      };
+
+      try {
+        const productResponse = await productQueries.createQuery(productData);
+        logger.info(`Product creation result: ${productResponse.message}`);
+        productCreationPromises.push(productResponse);
+      } catch (error) {
+        logger.error(`Failed to create product: ${error}`);
+      }
+    }
+
+    const productCreationResults = await Promise.all(productCreationPromises);
 
     const prodductTitels = items.map((items: any) => items.products_title);
     const productIds = items.map((item: any) => item.product_id);
@@ -104,25 +116,52 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
       city: jsonData.billing_details.billing_city,
     };
 
-    const orderResponse = await orderQueries.createOrder(orderData);
-
-    logger.info(orderResponse.error, orderResponse.success);
-
     const orderId = Number(jsonData.orders_id);
 
-    const tagIds = (await rulesQueries.getRule(1)).data?.tags;
+    const orderResponse = await orderQueries.createOrder(orderData);
+    if (!orderResponse.orderExist && orderResponse.createJobs) {
+      const tagIds = (await rulesQueries.getRule(1)).data?.tags;
 
-    const tagData = await Promise.all(
-      (tagIds || []).map(async (tagId) => {
-        const result = await tagQueries.getTag(tagId);
-        return result.data;
-      })
-    );
-    const validTagData = serializeBigInt(tagData);
+      const tagData = await Promise.all(
+        (tagIds || []).map(async (tagId) => {
+          const result = await tagQueries.getTag(tagId);
+          return result.data;
+        })
+      );
+      const validTagData = serializeBigInt(tagData);
 
-    const createJobs = await QueueService.createQueues(orderId, validTagData);
+      const createJobs = await QueueService.createQueues(orderId, validTagData);
 
-    
+      const productMetricsUpdatePromises = [];
+      for (const item of items) {
+        const productMetrics: ProductMetrics = {
+          totalOrderedQuaninty: parseInt(item.products_quantity),
+          totalOrderCount: 1,
+          totalRevenue: Number(parseFloat(item.products_price).toFixed(2)),
+        };
+
+        try {
+          const metricsUpdateResult = await productQueries.updateProductMetrics(
+            item.product_id,
+            productMetrics
+          );
+          productMetricsUpdatePromises.push(metricsUpdateResult);
+        } catch (error) {
+          logger.error(
+            `Failed to update product metrics for product ${item.product_id}:`,
+            error
+          );
+        }
+      }
+      await Promise.all(productMetricsUpdatePromises);
+
+      logger.info(
+        createJobs.totalJobsCreated,
+        orderResponse.orderExist,
+        orderResponse.message,
+        orderResponse.error
+      );
+    }
 
     // logger.info(orderData);
     // const productsData: Product[] = items.map((item: any) => {

@@ -11,7 +11,7 @@ import cookieParser from "cookie-parser";
 import log from "./utils/logger";
 import config from "./config";
 import routes from "./route";
-import initHotfolder from "./hotfolder";
+import initHotfolder from "./hotfolderSetup";
 
 const server = express();
 

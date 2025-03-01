@@ -5,7 +5,7 @@ export interface OrderData {
   orderNumber: string;
   phoneNumber: string;
   userName: string;
-  paymentStatus: string
+  paymentStatus: string;
   userSurname?: string;
   companyName?: string;
   paymentMethodName: string;
@@ -21,6 +21,19 @@ export interface OrderData {
 
 export async function createOrder(orderData: OrderData) {
   try {
+    const findUnique = await prisma.order.findUnique({
+      where: {
+        id: Number(orderData.id),
+      },
+    });
+    if (findUnique) {
+      const createJobs = findUnique.paymentStatus === "Apmokėta";
+      return {
+        createJobs: createJobs,
+        orderExist: true,
+        message: "Order already exsit",
+      };
+    }
     const order = await prisma.order.create({
       data: {
         id: Number(orderData.id),
@@ -41,14 +54,16 @@ export async function createOrder(orderData: OrderData) {
         productIds: orderData.productIds,
         customer: {
           connect: {
-            id: orderData.customerId
-          }
-        }
+            id: orderData.customerId,
+          },
+        },
       },
     });
-
+    const createJobs = order.paymentStatus === "Apmokėta";
     return {
       success: true,
+      orderExist: false,
+      createJobs: createJobs,
       data: order,
     };
   } catch (error) {

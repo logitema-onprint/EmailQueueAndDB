@@ -14,7 +14,9 @@ CREATE TABLE "Customer" (
     "rewardPoints" TEXT,
     "extrafields" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Customer_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -28,13 +30,14 @@ CREATE TABLE "Order" (
     "companyName" TEXT,
     "paymentMethodName" TEXT NOT NULL,
     "totalAmount" DOUBLE PRECISION NOT NULL,
-    "salesAgentId" TEXT NOT NULL,
+    "salesAgentId" INTEGER NOT NULL,
     "country" TEXT NOT NULL,
     "city" TEXT NOT NULL,
     "customerId" TEXT NOT NULL,
     "productNames" TEXT[],
     "productIds" TEXT[],
-    "orderDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "orderDate" TEXT NOT NULL,
+    "paymentStatus" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -43,14 +46,12 @@ CREATE TABLE "Order" (
 
 -- CreateTable
 CREATE TABLE "Product" (
-    "id" SERIAL NOT NULL,
-    "product_id" TEXT NOT NULL,
-    "products_name" TEXT NOT NULL,
-    "products_title" TEXT NOT NULL,
+    "id" TEXT NOT NULL,
+    "productName" TEXT NOT NULL,
+    "productTitle" TEXT NOT NULL,
     "totalOrderedQuantity" INTEGER NOT NULL DEFAULT 0,
     "totalOrderCount" INTEGER NOT NULL DEFAULT 0,
-    "totalRevenueBeforeTax" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "totalRevenueAfterTax" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "totalRevenue" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -58,13 +59,23 @@ CREATE TABLE "Product" (
 );
 
 -- CreateTable
+CREATE TABLE "SalesAgent" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "phoneNumber" TEXT NOT NULL,
+    "fullText" TEXT NOT NULL,
+    "orderCount" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "SalesAgent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "OrderProduct" (
     "id" SERIAL NOT NULL,
     "orderId" INTEGER NOT NULL,
-    "productId" INTEGER NOT NULL,
+    "productId" TEXT NOT NULL,
     "quantity" INTEGER NOT NULL,
-    "price" DOUBLE PRECISION NOT NULL,
-    "priceWithTax" DOUBLE PRECISION NOT NULL,
+    "totalAmount" DOUBLE PRECISION NOT NULL,
     "orderDate" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "OrderProduct_pkey" PRIMARY KEY ("id")
@@ -97,7 +108,6 @@ CREATE TABLE "CountryRevenue" (
 -- CreateTable
 CREATE TABLE "Rule" (
     "id" SERIAL NOT NULL,
-    "productId" INTEGER NOT NULL,
     "ruleName" TEXT NOT NULL,
     "tags" INTEGER[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -138,9 +148,6 @@ CREATE TABLE "Job" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Customer_id_key" ON "Customer"("id");
-
--- CreateIndex
 CREATE INDEX "Customer_id_idx" ON "Customer"("id");
 
 -- CreateIndex
@@ -165,10 +172,7 @@ CREATE INDEX "Order_userId_idx" ON "Order"("userId");
 CREATE INDEX "Order_customerId_idx" ON "Order"("customerId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Product_product_id_key" ON "Product"("product_id");
-
--- CreateIndex
-CREATE INDEX "Product_product_id_idx" ON "Product"("product_id");
+CREATE INDEX "Product_id_idx" ON "Product"("id");
 
 -- CreateIndex
 CREATE INDEX "OrderProduct_orderId_idx" ON "OrderProduct"("orderId");
@@ -190,9 +194,6 @@ CREATE INDEX "CountryRevenue_countryId_idx" ON "CountryRevenue"("countryId");
 
 -- CreateIndex
 CREATE INDEX "CountryRevenue_orderDate_idx" ON "CountryRevenue"("orderDate");
-
--- CreateIndex
-CREATE INDEX "Rule_productId_idx" ON "Rule"("productId");
 
 -- CreateIndex
 CREATE INDEX "Tag_tagName_idx" ON "Tag"("tagName");

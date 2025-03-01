@@ -53,8 +53,8 @@ function initHotfolder() {
   });
 
   watcher
-    .on("add", (filePath) => processNewFile(filePath))
-    .on("error", (error) => log.error(`Watcher error: ${error}`));
+    .on("add", (filePath: string) => processNewFile(filePath))
+    .on("error", (error: unknown) => log.error(`Watcher error: ${error}`));
 
   log.info(`Hotfolder watcher initialized at: ${HOTFOLDER_PATH}`);
   return watcher;

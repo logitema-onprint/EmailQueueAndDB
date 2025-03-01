@@ -1,10 +1,7 @@
-import { Worker, QueueEvents, Job } from "bullmq";
+import { Worker, Job } from "bullmq";
 import { queuesQueries } from "../queries/queuesQueries";
 import logger from "../utils/logger";
-import { EmailQueue } from "../queues/emailQueue";
 import { tagQueries } from "../queries/tagQueries";
-import { RevalidateService } from "../services/revalidateNext";
-import { log } from "console";
 import { QueueService } from "../services/queueService";
 
 interface EmailJob {
@@ -44,6 +41,9 @@ const worker = new Worker<EmailJob>(
       port: 6379,
     },
     concurrency: 3,
+    removeOnComplete: {
+      age: 604800000,
+    },
   }
 );
 
@@ -55,11 +55,9 @@ worker.on("completed", async (job: Job<EmailJob>) => {
   });
 
   await tagQueries.updateTagCount(tagId, "decrement");
-
-
 });
 
-worker.on("active", async (job: Job<EmailJob>) => { });
+worker.on("active", async (job: Job<EmailJob>) => {});
 
 worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
   if (!job) {

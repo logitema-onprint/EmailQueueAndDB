@@ -10,7 +10,7 @@ datasource db {
 }
 
 model Customer {
-  id                 String   @unique
+  id                 String   @id
   firstName          String
   lastName           String
   fullName           String
@@ -64,19 +64,17 @@ model Order {
 }
 
 model Product {
-  id                     Int           @id @default(autoincrement())
-  product_id             String        @unique
-  products_name          String
-  products_title         String
+  id                     String         @id
+  productName            String
+  productTitle           String
   totalOrderedQuantity   Int           @default(0)
   totalOrderCount        Int           @default(0)
-  totalRevenueBeforeTax  Float         @default(0)
-  totalRevenueAfterTax   Float         @default(0)
+  totalRevenue           Decimal       @db.Decimal(10, 2) @default(0) 
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
   orderProducts          OrderProduct[]
 
-  @@index([product_id])
+  @@index([id])
 }
 
 model SalesAgent {
@@ -90,10 +88,9 @@ model SalesAgent {
 model OrderProduct {
   id             Int      @id @default(autoincrement())
   orderId        Int
-  productId      Int
+  productId      String
   quantity       Int
-  price          Float
-  priceWithTax   Float
+  totalAmount    Float
   orderDate      DateTime
 
   order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
