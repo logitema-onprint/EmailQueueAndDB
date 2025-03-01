@@ -5,13 +5,14 @@ export interface OrderData {
   orderNumber: string;
   phoneNumber: string;
   userName: string;
+  paymentStatus: string
   userSurname?: string;
   companyName?: string;
   paymentMethodName: string;
   totalAmount: number;
-  salesAgentId: string;
+  salesAgentId: number;
   country: string;
-  orderDate: Date;
+  orderDate: string;
   city: string;
   customerId: string;
   productNames: string[];
@@ -22,14 +23,15 @@ export async function createOrder(orderData: OrderData) {
   try {
     const order = await prisma.order.create({
       data: {
-        id: orderData.id,
+        id: Number(orderData.id),
         orderNumber: orderData.orderNumber,
         phoneNumber: orderData.phoneNumber,
         userName: orderData.userName,
+        paymentStatus: orderData.paymentStatus,
         userSurname: orderData.userSurname,
         companyName: orderData.companyName,
         paymentMethodName: orderData.paymentMethodName,
-        totalAmount: orderData.totalAmount,
+        totalAmount: Number(orderData.totalAmount),
         salesAgentId: orderData.salesAgentId,
         country: orderData.country,
         city: orderData.city,

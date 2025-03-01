@@ -42,13 +42,14 @@ model Order {
   companyName       String?
   paymentMethodName String   
   totalAmount       Float     
-  salesAgentId      String
+  salesAgentId      Int
   country           String
   city              String
   customerId        String
   productNames      String[]  
   productIds        String[] 
-  orderDate         DateTime  @default(now())
+  orderDate         String  
+  paymentStatus     String
   jobs              Job[]
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -76,6 +77,14 @@ model Product {
   orderProducts          OrderProduct[]
 
   @@index([product_id])
+}
+
+model SalesAgent {
+  id Int @id @default(autoincrement())
+  name String
+  phoneNumber String
+  fullText String
+  orderCount Int  @default(0)
 }
 
 model OrderProduct {

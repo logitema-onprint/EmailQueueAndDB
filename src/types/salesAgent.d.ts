@@ -3,6 +3,5 @@ export interface SalesAgent {
   fullName: string;
   phoneNumber?: string;
   originalText: string;
-  totalOrders: number;
-  totalSales: number;
+  totalOrders: number;  
 }
