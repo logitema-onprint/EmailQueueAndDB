@@ -6,6 +6,8 @@ import { getAllOrders } from "./getManyQuery";
 import { getOrderIds } from "./getOrdersIds";
 import { getOrder } from "./getQuery.ts";
 import { deleteOrdersById } from "./batch/deleteOrderById";
+import { getLastOrder } from "./getLastOrder";
+import { updateOrderLastKey } from "./updateOrderLastKey";
 
 export const orderQueries = {
   createOrder,
@@ -15,5 +17,7 @@ export const orderQueries = {
   getFilteredOrders,
   deleteFiltered,
   getOrderIds,
-  deleteOrdersById
+  deleteOrdersById,
+  getLastOrder,
+  updateOrderLastKey
 };

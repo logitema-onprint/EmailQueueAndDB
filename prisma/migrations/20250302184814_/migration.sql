@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Rule" ALTER COLUMN "ruleType" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "Tag" ALTER COLUMN "tagType" DROP DEFAULT;

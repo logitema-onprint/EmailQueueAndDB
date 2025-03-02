@@ -1,4 +1,5 @@
 import prisma from "../../services/prisma";
+import logger from "../../utils/logger";
 
 export interface OrderData {
   id: number;
@@ -14,6 +15,7 @@ export interface OrderData {
   country: string;
   orderDate: string;
   city: string;
+  isLast: boolean;
   customerId: string;
   productNames: string[];
   productIds: string[];
@@ -21,19 +23,32 @@ export interface OrderData {
 
 export async function createOrder(orderData: OrderData) {
   try {
-    const findUnique = await prisma.order.findUnique({
+    // First check if the order already exists
+    const existingOrder = await prisma.order.findUnique({
       where: {
         id: Number(orderData.id),
       },
     });
-    if (findUnique) {
-      const createJobs = findUnique.paymentStatus === "Apmokėta";
+
+    if (existingOrder) {
+      const createJobs = existingOrder.paymentStatus === "Apmokėta";
       return {
         createJobs: createJobs,
         orderExist: true,
-        message: "Order already exsit",
+        message: "Order already exists",
       };
     }
+
+    if (orderData.paymentStatus !== "Apmokėta") {
+      logger.warn("Neapmokėtas užsakymas");
+      return {
+        success: true,
+        orderExist: false,
+        createJobs: false,
+        message: "Order not created - payment status is not Apmokėta",
+      };
+    }
+
     const order = await prisma.order.create({
       data: {
         id: Number(orderData.id),
@@ -51,6 +66,7 @@ export async function createOrder(orderData: OrderData) {
         orderDate: orderData.orderDate,
         customerId: orderData.customerId,
         productNames: orderData.productNames,
+        isLast: orderData.isLast,
         productIds: orderData.productIds,
         customer: {
           connect: {
@@ -59,17 +75,21 @@ export async function createOrder(orderData: OrderData) {
         },
       },
     });
-    const createJobs = order.paymentStatus === "Apmokėta";
+
     return {
       success: true,
       orderExist: false,
-      createJobs: createJobs,
+      createJobs: true,
       data: order,
+      message: "Order created successfully",
     };
   } catch (error) {
     return {
       success: false,
+      orderExist: false,
+      createJobs: false,
       error: `Failed to create order: ${error}`,
+      message: `Failed to create order: ${error}`,
     };
   }
 }

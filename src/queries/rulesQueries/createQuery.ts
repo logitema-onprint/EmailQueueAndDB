@@ -4,6 +4,7 @@ import logger from "../../utils/logger";
 
 export interface RulesData {
   ruleName: string;
+  ruleType: string;
   tags: number[];
 }
 
@@ -12,12 +13,11 @@ export async function createQuery(rulesData: RulesData) {
     const result = await prisma.rule.create({
       data: {
         ruleName: rulesData.ruleName,
+        ruleType: rulesData.ruleType,
         tags: rulesData.tags,
       },
     });
-    logger.success(
-      `Rule ${result.ruleName} created`
-    );
+    logger.success(`Rule ${result.ruleName} created`);
   } catch (error) {
     return {
       success: false,
