@@ -6,6 +6,7 @@ export interface OrderData {
   orderNumber: string;
   phoneNumber: string;
   userName: string;
+  email: string;
   paymentStatus: string;
   userSurname?: string;
   companyName?: string;
@@ -23,7 +24,6 @@ export interface OrderData {
 
 export async function createOrder(orderData: OrderData) {
   try {
-    // First check if the order already exists
     const existingOrder = await prisma.order.findUnique({
       where: {
         id: Number(orderData.id),
@@ -55,6 +55,7 @@ export async function createOrder(orderData: OrderData) {
         orderNumber: orderData.orderNumber,
         phoneNumber: orderData.phoneNumber,
         userName: orderData.userName,
+        email: orderData.email,
         paymentStatus: orderData.paymentStatus,
         userSurname: orderData.userSurname,
         companyName: orderData.companyName,
