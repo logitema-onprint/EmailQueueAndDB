@@ -11,7 +11,7 @@ export async function getAllOrders({
 
     const [orders, totalCount] = await Promise.all([
       prisma.order.findMany({
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        orderBy: [{ orderDate: "desc" }, { id: "desc" }],
         include: {
           jobs: true,
         },

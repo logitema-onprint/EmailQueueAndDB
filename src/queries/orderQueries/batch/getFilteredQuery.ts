@@ -13,7 +13,7 @@ export async function getFilteredOrders(
     agent?: string | null;
     paymentMethod?: string | null;
     companyName?: string;
-    product?: string | null;
+    products?: string[] | null;
     dateRange: {
       from: string | null;
       to: string | null;
@@ -27,7 +27,7 @@ export async function getFilteredOrders(
 ) {
   try {
     const where: any = {};
-     console.log(pageSize)
+    console.log(pageSize)
     if (filters.tagIds?.length && !filters.isNot) {
       const existingTags = await prisma.job.findMany({
         select: {
@@ -231,10 +231,18 @@ export async function getFilteredOrders(
         : filters.agent;
     }
 
-    if (filters.product) {
-      where.productName = filters.isNot
-        ? { not: filters.product }
-        : filters.product;
+    if (filters.products && filters.products.length > 0) {
+      if (filters.isNot) {
+        where.productNames = {
+          none: {
+            in: filters.products
+          }
+        };
+      } else {
+        where.productNames = {
+          hasSome: filters.products
+        };
+      }
     }
 
     if (filters.paymentMethod) {
@@ -244,38 +252,44 @@ export async function getFilteredOrders(
     }
 
     if (filters.dateRange?.from || filters.dateRange?.to) {
+      logger.info("Original date range:", { from: filters.dateRange.from, to: filters.dateRange.to });
+
       if (filters.isNot) {
-        where.OR = [
-          {
-            createdAt: {
-              lt: filters.dateRange.from
-                ? new Date(`${filters.dateRange.from}T00:00:00.000Z`)
-                : undefined,
-            },
-          },
-          {
-            createdAt: {
-              gt: filters.dateRange.to
-                ? new Date(`${filters.dateRange.to}T23:59:59.999Z`)
-                : undefined,
-            },
-          },
-        ].filter(
-          (condition) =>
-            condition.createdAt.lt !== undefined ||
-            condition.createdAt.gt !== undefined
-        );
-      } else {
-        where.createdAt = {};
+        const conditions = [];
         if (filters.dateRange.from) {
-          where.createdAt.gte = new Date(
-            `${filters.dateRange.from}T00:00:00.000Z`
-          );
+          conditions.push({
+            orderDate: {
+              lt: filters.dateRange.from,
+            },
+          });
         }
         if (filters.dateRange.to) {
-          where.createdAt.lte = new Date(
-            `${filters.dateRange.to}T23:59:59.999Z`
-          );
+          const adjustedTo = filters.dateRange.to.includes(" ")
+            ? filters.dateRange.to
+            : `${filters.dateRange.to} 23:59:59`;
+
+          conditions.push({
+            orderDate: {
+              gt: adjustedTo,
+            },
+          });
+        }
+        if (conditions.length > 0) {
+          where.OR = conditions;
+        }
+      } else {
+        where.orderDate = {};
+
+        if (filters.dateRange.from) {
+          where.orderDate.gte = filters.dateRange.from;
+        }
+
+        if (filters.dateRange.to) {
+          const adjustedTo = filters.dateRange.to.includes(" ")
+            ? filters.dateRange.to
+            : `${filters.dateRange.to} 23:59:59`;
+
+          where.orderDate.lte = adjustedTo;
         }
       }
     }
@@ -284,14 +298,14 @@ export async function getFilteredOrders(
       if (filters.isNot) {
         where.OR = [
           {
-            subTotal: {
+            totalAmount: {
               lt: filters.priceRange.min
                 ? parseFloat(filters.priceRange.min)
                 : undefined,
             },
           },
           {
-            subTotal: {
+            totalAmount: {
               gt: filters.priceRange.max
                 ? parseFloat(filters.priceRange.max)
                 : undefined,
@@ -299,16 +313,16 @@ export async function getFilteredOrders(
           },
         ].filter(
           (condition) =>
-            condition.subTotal.lt !== undefined ||
-            condition.subTotal.gt !== undefined
+            condition.totalAmount.lt !== undefined ||
+            condition.totalAmount.gt !== undefined
         );
       } else {
-        where.subTotal = {};
+        where.totalAmount = {};
         if (filters.priceRange.min) {
-          where.subTotal.gte = parseFloat(filters.priceRange.min);
+          where.totalAmount.gte = parseFloat(filters.priceRange.min);
         }
         if (filters.priceRange.max) {
-          where.subTotal.lte = parseFloat(filters.priceRange.max);
+          where.totalAmount.lte = parseFloat(filters.priceRange.max);
         }
       }
     }
@@ -384,7 +398,7 @@ export async function getFilteredOrders(
       include: {
         jobs: true,
       },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      orderBy: [{ orderDate: "desc" }, { id: "desc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
