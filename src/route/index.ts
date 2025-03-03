@@ -5,8 +5,10 @@ import { ruleRoutes } from "./ruleRoutes";
 import { orderRoutes } from "./orderRoutes";
 import { salesAgentRoutes } from "./salesAgentRoutes";
 import { productRoutes } from "./productRoutes";
+import { countryRoutes } from "./countryRoutes";
 
 const routes = (server: Express) => {
+  countryRoutes(server)
   queueRoutes(server);
   productRoutes(server)
   tagRoutes(server);

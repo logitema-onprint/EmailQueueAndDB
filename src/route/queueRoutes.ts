@@ -16,7 +16,7 @@ export const queueRoutes = async (server: Express) => {
     "/api/queue/sendTime/:jobId",
     queueControllers.updateQueueSendTime
   );
-
+  server.delete('/api/queue/jobs/delete', queueControllers.deleteManyQueues)
   // Most generic parameter routes last
   server.post("/api/queue", queueControllers.createQueue);
   server.delete("/api/queue/:jobId", queueControllers.deleteQueue);

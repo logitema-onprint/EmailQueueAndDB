@@ -219,9 +219,16 @@ export async function getFilteredOrders(
           : filters.location.country;
       }
       if (filters.location.city) {
-        where.city = filters.isNot
-          ? { not: filters.location.city }
-          : filters.location.city;
+        if (filters.isNot) {
+          where.city = {
+            not: { contains: filters.location.city, mode: "insensitive" }
+          };
+        } else {
+          where.city = {
+            contains: filters.location.city,
+            mode: "insensitive"
+          };
+        }
       }
     }
 

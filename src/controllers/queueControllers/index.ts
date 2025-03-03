@@ -8,6 +8,7 @@ import { updateQueueSendTime } from "./updateQueueSendTime";
 import { pauseQueuesByTag } from "./pauseQueuesByTag";
 import { resumeQueuesByTag } from "./resumeQueuesByTag";
 import { getQueueStats } from "./getQueueStats";
+import { deleteManyQueues } from "./deleteManyQueues";
 
 const queueControllers = {
   createQueue,
@@ -20,6 +21,7 @@ const queueControllers = {
   pauseQueuesByTag,
   resumeQueuesByTag,
   getQueueStats,
+  deleteManyQueues
 };
 
 export default queueControllers;
