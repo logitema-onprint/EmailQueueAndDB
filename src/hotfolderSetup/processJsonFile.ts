@@ -127,7 +127,7 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
       totalAmount: jsonData.total_amount,
       productNames: prodductTitels,
       email: jsonData.customer_details.customers_email_address,
-      isLast: true,
+      isLast: false,
       productIds: productIds,
       paymentMethodName: jsonData.payment_method_name,
       salesAgentId: salesAgentId,
