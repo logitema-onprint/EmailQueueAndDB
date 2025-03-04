@@ -1,19 +1,26 @@
 import prisma from "../../services/prisma";
+import logger from "../../utils/logger";
 
-export async function getLastOrder(customerId: string) {
+export async function getLastOrder(customerId: string, newOrderId: number) {
   try {
     const lastOrder = await prisma.order.findFirst({
       where: {
         customerId: customerId,
-        isLast: true,
+      },
+      orderBy: {
+        orderDate: "desc",
       },
     });
     if (lastOrder) {
+      logger.info(`Last order id:${lastOrder.id} `);
+      const orderToInactive =
+        newOrderId > lastOrder.id ? lastOrder.id : newOrderId;
+
       return {
         success: true,
         message: `Custmer:${lastOrder.customerId} have previos orders`,
         isLast: true,
-        orderId: lastOrder.id,
+        orderToInactive: orderToInactive,
       };
     }
     return {

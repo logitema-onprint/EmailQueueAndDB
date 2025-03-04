@@ -94,7 +94,10 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
       const productData: ProductData = {
         id: item.product_id,
         title: item.products_title,
-        name: item.products_name === "{}" || typeof item.products_name === "object" ? "" : item.products_name,
+        name:
+          item.products_name === "{}" || typeof item.products_name === "object"
+            ? ""
+            : item.products_name,
       };
 
       try {
@@ -127,28 +130,26 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
       totalAmount: jsonData.total_amount,
       productNames: prodductTitels,
       email: jsonData.customer_details.customers_email_address,
-      isLast: false,
+      isLast: true,
       productIds: productIds,
       paymentMethodName: jsonData.payment_method_name,
       salesAgentId: salesAgentId,
       country: jsonData.billing_details.billing_country,
       city: jsonData.billing_details.billing_city,
     };
-
-    const isLastOrder = await orderQueries.getLastOrder(jsonData.user_id);
+    const isLastOrder = await orderQueries.getLastOrder(
+      jsonData.user_id,
+      Number(jsonData.orders_id)
+    );
 
     const orderResponse = await orderQueries.createOrder(orderData);
 
     if (!orderResponse.createJobs) {
       logger.info("Moving jobs in paused queue");
-      await QueueService.pauseOrders([Number(isLastOrder.orderId)]);
+      await QueueService.pauseOrders([Number(jsonData.orders_id)]);
     }
 
     if (!orderResponse.orderExist && orderResponse.createJobs) {
-      if (isLastOrder.isLast) {
-        await QueueService.makeInactiveOrders([Number(isLastOrder.orderId)]);
-        await orderQueries.updateOrderLastKey(Number(isLastOrder.orderId));
-      }
       const tagIds = (await rulesQueries.getGlobalRule()).data?.tags || [];
       const tagData = await Promise.all(
         tagIds.map(async (tagId) => {
@@ -211,6 +212,14 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
             `Failed to update product metrics for product ${item.product_id}: ${error}`
           );
         }
+      }
+
+      console.log("Last type:", isLastOrder.orderToInactive);
+      logger.debug(isLastOrder.message);
+
+      if (isLastOrder.isLast) {
+        await orderQueries.updateOrderLastKey(Number(isLastOrder.orderToInactive));
+        await QueueService.makeInactiveOrders([Number(isLastOrder.orderToInactive)]);
       }
 
       logger.info(
