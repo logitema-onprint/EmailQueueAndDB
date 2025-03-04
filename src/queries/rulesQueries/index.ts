@@ -3,6 +3,7 @@ import { deleteRule } from "./deleteQuery";
 import { getGlobalRule } from "./getGlobalRule";
 import { getAllRules } from "./getManyQuery";
 import { getRule } from "./getQuery";
+import { updateRule } from "./updateQuery";
 
 export const rulesQueries = {
   createQuery,
@@ -10,4 +11,5 @@ export const rulesQueries = {
   getAllRules,
   getRule,
   getGlobalRule,
+  updateRule
 };

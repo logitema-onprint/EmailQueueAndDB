@@ -10,6 +10,9 @@ export async function deleteRule(ruleId: number) {
     if (!existingRule) {
       throw new Error(`Rule with ID ${ruleId} does not exist`);
     }
+    if (existingRule.ruleType === 'Global') {
+      throw new Error('Cant delete rule with global type');
+    }
 
     const res = await prisma.rule.delete({
       where: { id: ruleId },

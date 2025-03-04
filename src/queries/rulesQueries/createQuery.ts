@@ -1,10 +1,11 @@
-import { number } from "zod";
 import prisma from "../../services/prisma";
 import logger from "../../utils/logger";
 
+export type RuleType = 'Global' | 'Subscriber' | 'Product' | 'All';
+
 export interface RulesData {
   ruleName: string;
-  ruleType: string;
+  ruleType: RuleType;
   tags: number[];
 }
 

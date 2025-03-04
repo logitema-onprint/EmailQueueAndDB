@@ -240,13 +240,13 @@ export async function getFilteredOrders(
 
     if (filters.products && filters.products.length > 0) {
       if (filters.isNot) {
-        where.productNames = {
+        where.productIds = {
           none: {
             in: filters.products
           }
         };
       } else {
-        where.productNames = {
+        where.productIds = {
           hasSome: filters.products
         };
       }

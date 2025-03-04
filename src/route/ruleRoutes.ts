@@ -8,6 +8,7 @@ export const ruleRoutes = async (server: Express) => {
   server.get("/api/rule/:ruleId", ruleController.getRule);
   server.get("/api/rules", ruleController.getRules);
   server.delete("/api/rule/:ruleId", ruleController.deleteRule);
+  server.patch('/api/rule/:ruleId', ruleController.updateRule)
 };
 
 export default router;

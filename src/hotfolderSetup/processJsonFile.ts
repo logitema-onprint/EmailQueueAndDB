@@ -94,7 +94,7 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
       const productData: ProductData = {
         id: item.product_id,
         title: item.products_title,
-        name: item.products_name,
+        name: item.products_name === "{}" || typeof item.products_name === "object" ? "" : item.products_name,
       };
 
       try {
@@ -107,7 +107,6 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
       }
     }
 
-    // Prepare order data with confirmed salesAgentId
     const prodductTitels = items.map((item: any) => item.products_title);
     const productIds = items.map((item: any) => item.product_id);
     const orderId = Number(jsonData.orders_id);
