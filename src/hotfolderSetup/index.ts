@@ -23,7 +23,7 @@ async function processNewFile(filePath: string) {
   log.info(`New file detected: ${fileName}`);
 
   try {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     if (fileName.endsWith(".json")) {
       const success = await processJsonFile(filePath);

@@ -68,7 +68,7 @@ export class QueueService {
           tagCountMap.set(tag.id, (tagCountMap.get(tag.id) || 0) + 1);
         }
       }
-
+      logger.debug(`Attempting to add ${bulkJobs.length} jobs to BullMQ`);
       const jobs = await EmailQueue.addBulk(bulkJobs);
 
       const queueResult = await queuesQueries.createQueueBulk(queueItems);
@@ -77,6 +77,7 @@ export class QueueService {
         for (const job of jobs) {
           await job.remove();
         }
+        logger.error(`Failed to create queue records: ${queueResult.error} `)
         throw new Error(`Failed to create queue records: ${queueResult.error}`);
       }
 

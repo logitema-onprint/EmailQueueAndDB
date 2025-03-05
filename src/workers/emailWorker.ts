@@ -54,10 +54,14 @@ worker.on("completed", async (job: Job<EmailJob>) => {
     completed: true,
   });
 
+  if (!updateStatus.success) {
+    logger.error(updateStatus.message, updateStatus.error, updateStatus.response)
+  }
+
   await tagQueries.updateTagCount(tagId, "decrement");
 });
 
-worker.on("active", async (job: Job<EmailJob>) => {});
+worker.on("active", async (job: Job<EmailJob>) => { });
 
 worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
   if (!job) {
