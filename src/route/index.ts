@@ -6,15 +6,17 @@ import { orderRoutes } from "./orderRoutes";
 import { salesAgentRoutes } from "./salesAgentRoutes";
 import { productRoutes } from "./productRoutes";
 import { countryRoutes } from "./countryRoutes";
+import { customerRoutes } from "./customerRoutes";
 
 const routes = (server: Express) => {
-  countryRoutes(server)
+  countryRoutes(server);
   queueRoutes(server);
-  productRoutes(server)
+  productRoutes(server);
   tagRoutes(server);
   ruleRoutes(server);
   orderRoutes(server);
   salesAgentRoutes(server);
+  customerRoutes(server);
 };
 
 export default routes;

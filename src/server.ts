@@ -18,7 +18,7 @@ const server = express();
 server.use(helmet());
 server.use(
   cors({
-    origin: ["https://www.onprintvacations.site", "http://localhost:3000"],
+    origin: ["https://www.onprintvacations.site", "http://localhost:3000",  'https://localhost:3000',],
     credentials: true,
   })
 );
