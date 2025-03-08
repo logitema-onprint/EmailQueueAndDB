@@ -14,15 +14,17 @@ export const getCustumerInfo: RequestHandler = async (
     if (!email) {
       res.status(400).json({
         success: false,
+        errorType: "MISSING_FIELD",
         message: "Missing required fields",
       });
     }
     const result = await customerQueries.getCustomerInfo(email as string);
 
     if (!result.success) {
-      res.status(400).json({
+      res.status(404).json({
         success: false,
         message: "No customer found",
+        errorType: "CUSTOMER_NOT_FOUND",
       });
       return;
     }
@@ -37,6 +39,7 @@ export const getCustumerInfo: RequestHandler = async (
     logger.error("Failed to get customer information", error);
     res.status(500).json({
       success: false,
+      errorType: "SERVER_ERROR",
       message: "Failed to get customer information",
     });
   }
