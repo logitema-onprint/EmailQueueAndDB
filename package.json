@@ -6,9 +6,11 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.741.0",
     "@aws-sdk/lib-dynamodb": "^3.741.0",
+    "@azure/msal-node": "^3.3.0",
     "@prisma/client": "^6.3.1",
     "@sentry/node": "^8.53.0",
     "@types/bull": "^4.10.4",
+    "axios": "^1.8.3",
     "bullmq": "^5.40.2",
     "chokidar": "^4.0.3",
     "cookie-parser": "^1.4.7",

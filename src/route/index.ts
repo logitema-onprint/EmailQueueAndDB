@@ -7,6 +7,7 @@ import { salesAgentRoutes } from "./salesAgentRoutes";
 import { productRoutes } from "./productRoutes";
 import { countryRoutes } from "./countryRoutes";
 import { customerRoutes } from "./customerRoutes";
+import { webhookRoutes } from "./webHookRoutes";
 
 const routes = (server: Express) => {
   countryRoutes(server);
@@ -17,6 +18,7 @@ const routes = (server: Express) => {
   orderRoutes(server);
   salesAgentRoutes(server);
   customerRoutes(server);
+  webhookRoutes(server)
 };
 
 export default routes;
