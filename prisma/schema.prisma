@@ -161,7 +161,7 @@ model Job {
 }
 
 model Template {
-  id           String   @id @default(uuid())
+  id           Int      @id @default(autoincrement())
   templateName String   @unique
   jsonUrl      String
   htmlUrl      String
