@@ -13,6 +13,9 @@ const requiredEnvVars = {
   QUEUE_TAG_TABLE: process.env.QUEUE_TAG_TABLE,
   ORDER_TABLE_NAME: process.env.ORDER_TABLE_NAME,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+  TENANT_ID: process.env.TENANT_ID,
+  CLIENT_ID: process.env.CLIENT_ID,
+  CLIENT_SECRET: process.env.CLIENT_SECRET,
 } as const;
 
 const missingVars = Object.entries(requiredEnvVars)
@@ -50,6 +53,11 @@ const config = {
     secret: process.env.REVALIDATE_SECRET_QUEUES,
     nextUrl: process.env.NEXTJS_URL,
     nextSecret: process.env.NEXTAUTH_SECRET,
+  },
+  microsoftGraphApi: {
+    secret: process.env.CLIENT_SECRET,
+    tenat: process.env.TENANT_ID,
+    client: process.env.CLIENT_ID,
   },
 } as const;
 
