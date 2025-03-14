@@ -4,9 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider        = "postgresql"
-  url             = env("DATABASE_URL")
-  
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Customer {
@@ -18,14 +17,14 @@ model Customer {
   email              String
   phoneNumber        String
   totalOrders        Int      @default(0)
-  totalSpend          Decimal       @db.Decimal(10, 2) @default(0) 
-  totalSpendAfterTax  Decimal       @db.Decimal(10, 2) @default(0) 
+  totalSpend         Decimal  @default(0) @db.Decimal(10, 2)
+  totalSpendAfterTax Decimal  @default(0) @db.Decimal(10, 2)
   registerDate       String
   rewardPoints       String?
   extrafields        String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
-  orders             Order[] 
+  orders             Order[]
 
   @@index([id])
   @@index([email])
@@ -33,90 +32,89 @@ model Customer {
 }
 
 model Order {
-  id                Int    @id 
-  orderNumber       String    
-  userId            String    
+  id                Int            @id
+  orderNumber       String
+  userId            String
   phoneNumber       String
   userName          String
   userSurname       String?
   companyName       String?
-  paymentMethodName String   
-  totalAmount       Float     
+  paymentMethodName String
+  totalAmount       Float
   salesAgentId      Int
   country           String
   city              String
   customerId        String
   isLast            Boolean
-  productNames      String[]  
-  productIds        String[] 
-  orderDate         String  
+  productNames      String[]
+  productIds        String[]
+  orderDate         String
   paymentStatus     String
   email             String
   jobs              Job[]
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  customer          Customer  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  customer          Customer       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  OrderProduct      OrderProduct[]
 
   @@index([salesAgentId])
   @@index([country])
   @@index([totalAmount])
   @@index([userId])
   @@index([customerId])
-  OrderProduct OrderProduct[]
 }
 
 model Product {
-  id                     String         @id
-  productName            String
-  productTitle           String
-  totalOrderedQuantity   Int           @default(0)
-  totalOrderCount        Int           @default(0)
-  totalRevenue           Decimal       @db.Decimal(10, 2) @default(0) 
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
-  orderProducts          OrderProduct[]
+  id                   String         @id
+  productName          String
+  productTitle         String
+  totalOrderedQuantity Int            @default(0)
+  totalOrderCount      Int            @default(0)
+  totalRevenue         Decimal        @default(0) @db.Decimal(10, 2)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  orderProducts        OrderProduct[]
 
   @@index([id])
 }
 
 model SalesAgent {
-  id Int @id @default(autoincrement())
-  name String
+  id          Int    @id @default(autoincrement())
+  name        String
   phoneNumber String
-  fullText String
-  orderCount Int  @default(0)
+  fullText    String
+  orderCount  Int    @default(0)
 }
 
 model OrderProduct {
-  id             Int      @id @default(autoincrement())
-  orderId        Int
-  productId      String
-  salesAgentId   Int
+  id                 Int     @id @default(autoincrement())
+  orderId            Int
+  productId          String
+  salesAgentId       Int
   salesAgentFullText String
-  quantity       Int
-  totalAmount    Decimal       @db.Decimal(10, 2) @default(0) 
-  orderDate      String
-  country           String   
-  city              String 
-  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
+  quantity           Int
+  totalAmount        Decimal @default(0) @db.Decimal(10, 2)
+  orderDate          String
+  country            String
+  city               String
+  order              Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product            Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@index([orderId])
   @@index([productId])
   @@index([orderDate])
-  @@index([country]) 
+  @@index([country])
   @@index([salesAgentId])
 }
 
 model Country {
-  id            Int      @id @default(autoincrement())
-  countryName   String   @unique
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  countryName String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([countryName])
 }
-
 
 model Rule {
   id        Int      @id @default(autoincrement())
@@ -125,7 +123,6 @@ model Rule {
   ruleType  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
 }
 
 model Tag {
@@ -161,4 +158,15 @@ model Job {
   @@index([tagId, status, createdAt])
   @@index([orderId, status, createdAt])
   @@index([orderId, tagId, status])
+}
+
+model Template {
+  id           String   @id @default(uuid())
+  templateName String   @unique
+  jsonUrl      String
+  htmlUrl      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([templateName])
 }
