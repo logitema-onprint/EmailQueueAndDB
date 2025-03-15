@@ -2,17 +2,18 @@ import { RequestHandler, Request, Response } from "express";
 import logger from "../../utils/logger";
 import { templateQueries } from "../../queries/templateQueries";
 
-export const getAllTemplates: RequestHandler = async (
+export const getTemplate: RequestHandler = async (
   req: Request,
   res: Response
 ) => {
   try {
-    const result = await templateQueries.getAllTemplates();
+    const { id } = req.params;
+    const result = await templateQueries.getTemplate(Number(id));
 
     if (!result.success) {
       res.status(400).json({
         success: false,
-        message: "Failed to get Tempaltes",
+        message: "Failed to get Tempalte",
       });
       return;
     }
@@ -22,10 +23,10 @@ export const getAllTemplates: RequestHandler = async (
       data: result.data,
     });
   } catch (error) {
-    logger.error("Failed to get Tempaltes", error);
+    logger.error("Failed to get Tempalte", error);
     res.status(500).json({
       success: false,
-      message: "Failed to get Tempaltes",
+      message: "Failed to get Tempalte",
     });
   }
 };
