@@ -26,7 +26,7 @@ export const updateTemplateName: RequestHandler = async (
             return;
         }
 
-        const updatedTemplate = await templateQueries.updateTemplate(id, { templateName });
+        const updatedTemplate = await templateQueries.updateTemplate(Number(id), { templateName });
 
         if (!updatedTemplate.success) {
             res.status(400).json({

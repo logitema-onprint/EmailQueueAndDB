@@ -7,6 +7,7 @@ import { salesAgentRoutes } from "./salesAgentRoutes";
 import { productRoutes } from "./productRoutes";
 import { countryRoutes } from "./countryRoutes";
 import { customerRoutes } from "./customerRoutes";
+import { templateRoutes } from "./tempalteRoutes";
 // import { graphRoutes } from "./graphApi";
 
 const routes = (server: Express) => {
@@ -19,6 +20,7 @@ const routes = (server: Express) => {
   salesAgentRoutes(server);
   customerRoutes(server);
   // graphRoutes(server);
+  templateRoutes(server);
 };
 
 export default routes;
