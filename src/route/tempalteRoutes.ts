@@ -7,6 +7,7 @@ export const templateRoutes = async (server: Express) => {
   server.get("/api/template", templateControllers.getAllTemplates);
   server.post("/api/template/create", templateControllers.createTemplate);
   server.get("/api/template/:id", templateControllers.getTemplate);
+  server.delete("/api/template/:id", templateControllers.deleteTemplate);
 };
 
 export default router;

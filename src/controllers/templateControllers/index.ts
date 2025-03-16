@@ -1,4 +1,5 @@
 import { createTemplate } from "./createTemplate";
+import { deleteTemplate } from "./deleteTemplate";
 import { getAllTemplates } from "./getALLTemplates";
 import { getTemplate } from "./getTemplate";
 import { updateTemplate } from "./updateTemplate";
@@ -10,4 +11,5 @@ export const templateControllers = {
   updateTemplate,
   updateTemplateName,
   getTemplate,
+  deleteTemplate,
 };
