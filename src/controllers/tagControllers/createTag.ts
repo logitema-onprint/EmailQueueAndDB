@@ -9,7 +9,7 @@ export const createTag: RequestHandler = async (
   res: Response
 ) => {
   try {
-    const { tagName, scheduledFor, tagType } = req.body;
+    const { tagName, scheduledFor, tagType, templateId, templateName } = req.body;
     console.log("1. Raw values:", {
       tagName,
       scheduledFor,
@@ -30,6 +30,8 @@ export const createTag: RequestHandler = async (
       tagName,
       scheduledFor: bigIntValue,
       tagType,
+      templateId,
+      templateName
     };
     console.log("3. Final tagData:", tagData);
 

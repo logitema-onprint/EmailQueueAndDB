@@ -8,7 +8,7 @@ export const updateTag: RequestHandler = async (
   try {
     const tagId = Number(req.params.tagId);
 
-    const { tagName, scheduledFor, jobsCount } = req.body;
+    const { tagName, scheduledFor, jobsCount, templateId, templateName } = req.body;
 
     if (!tagId || isNaN(tagId)) {
       res.status(400).json({
@@ -30,7 +30,9 @@ export const updateTag: RequestHandler = async (
     const updateTag = await tagQueries.updateTag(tagId, {
       tagName,
       scheduledFor,
-      jobsCount
+      jobsCount,
+      templateId,
+      templateName
     });
 
     if (updateTag.error) {

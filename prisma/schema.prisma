@@ -134,6 +134,8 @@ model Tag {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  templateId   Int?
+  templateName String?
 
   @@index([tagName])
 }

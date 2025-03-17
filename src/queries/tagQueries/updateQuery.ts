@@ -5,6 +5,8 @@ interface UpdateTagData {
   tagName?: string;
   scheduledFor?: number;
   jobsCount?: number;
+  templateId?: number
+  templateName?: string
 }
 
 export async function updateTag(tagId: number, data: UpdateTagData) {
@@ -18,8 +20,10 @@ export async function updateTag(tagId: number, data: UpdateTagData) {
     const updatedTag = await prisma.tag.update({
       where: { id: tagId },
       data: {
+        ...(data.templateName && { templateName: data.templateName }),
+        ...(data.templateId && { templateId: data.templateId }),
         ...(data.tagName && { tagName: data.tagName }),
-        ...(typeof data.jobsCount === 'number' && { jobsCount: data.jobsCount }), 
+        ...(typeof data.jobsCount === 'number' && { jobsCount: data.jobsCount }),
         ...(data.scheduledFor !== undefined && {
           scheduledFor: data.scheduledFor,
         }),
