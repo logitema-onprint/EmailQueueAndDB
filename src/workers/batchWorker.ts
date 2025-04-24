@@ -1,11 +1,34 @@
-import { Worker } from "bullmq";
+import { Worker, ConnectionOptions } from "bullmq";
+import IORedis from "ioredis";
 import logger from "../utils/logger";
 import { orderQueries } from "../queries/orderQueries";
 import { tagQueries } from "../queries/tagQueries";
 import { BatchServiceOrderScope } from "../services/batchServiceOrderScope";
 import { BatchServiceOrderTagScope } from "../services/batchServiceOrderTagScope";
-import { log } from "console";
 import { Tag } from "@prisma/client";
+
+const redisOptions: ConnectionOptions = {
+  host: process.env.REDIS_HOST || "redis",
+  port: Number(process.env.REDIS_PORT) || 6379,
+  enableReadyCheck: true,
+  maxRetriesPerRequest: null,
+  connectTimeout: 10000,
+  keepAlive: 30000 
+};
+
+const connection = new IORedis(redisOptions);
+
+connection.on("error", (error) => {
+  logger.error("Batch worker Redis connection error:", error);
+});
+
+connection.on("connect", () => {
+  logger.info("Batch worker connected to Redis ");
+});
+
+connection.on("reconnecting", () => {
+  logger.info("Batch worker Reconnecting to Redis");
+});
 
 const orderBatchWorker = new Worker(
   "batch-operation-queue",
@@ -143,19 +166,19 @@ const orderBatchWorker = new Worker(
   },
   {
     concurrency: 1,
-    connection: {
-      host: "redis",
-      port: 6379,
-    },
+    connection,
     lockDuration: 300000,
   }
 );
 
 orderBatchWorker.on("error", (error) => {
   logger.error("Worker error:", error);
+  // Don't crash the worker on errors, let it recover
 });
 
-orderBatchWorker.on("completed", (job, result) => {});
+orderBatchWorker.on("completed", (job, result) => {
+  logger.info(`Job ${job.id} completed successfully`);
+});
 
 orderBatchWorker.on("failed", (job, error) => {
   logger.error(`Job ${job?.id} failed:`, error);
@@ -167,6 +190,11 @@ orderBatchWorker.on("active", (job) => {
 
 orderBatchWorker.on("progress", (job, progress) => {
   logger.info(`Job ${job.id} progress: ${progress}%`);
+});
+
+// Add worker stalled handling
+orderBatchWorker.on("stalled", (jobId) => {
+  logger.warn(`Job ${jobId} has stalled and will be reprocessed`);
 });
 
 export default orderBatchWorker;

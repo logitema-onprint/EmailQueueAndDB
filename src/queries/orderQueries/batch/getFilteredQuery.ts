@@ -6,12 +6,13 @@ export async function getFilteredOrders(
     searchTerm?: string;
     tagIds?: number[] | null;
     tagStatuses?: string[] | null;
+    paymentMethod?: string[] | null;
+    email?: string;
     location?: {
       country: string;
       city: string | null;
     } | null;
-    agent?: string | null;
-    paymentMethod?: string | null;
+    agent?: number[] | null;
     companyName?: string;
     products?: string[] | null;
     dateRange: {
@@ -26,8 +27,31 @@ export async function getFilteredOrders(
   buildWhere?: boolean
 ) {
   try {
+    console.log(filters)
     const where: any = {};
-    console.log(pageSize)
+    if (filters.paymentMethod && filters.paymentMethod.length > 0) {
+      if (filters.isNot) {
+        where.paymentMethodName = {
+          notIn: filters.paymentMethod
+        };
+      } else {
+        where.paymentMethodName = {
+          in: filters.paymentMethod
+        };
+      }
+    }
+    if (filters.email) {
+      if (filters.isNot) {
+        where.email = {
+          not: { contains: filters.email, mode: "insensitive" },
+        };
+      } else {
+        where.email = {
+          contains: filters.email,
+          mode: "insensitive",
+        };
+      }
+    }
     if (filters.tagIds?.length && !filters.isNot) {
       const existingTags = await prisma.job.findMany({
         select: {
@@ -232,10 +256,16 @@ export async function getFilteredOrders(
       }
     }
 
-    if (filters.agent) {
-      where.salesAgentId = filters.isNot
-        ? { not: filters.agent }
-        : filters.agent;
+    if (filters.agent && filters.agent.length > 0) {
+      if (filters.isNot) {
+        where.salesAgentId = {
+          notIn: filters.agent
+        };
+      } else {
+        where.salesAgentId = {
+          in: filters.agent
+        };
+      }
     }
 
     if (filters.products && filters.products.length > 0) {
@@ -250,12 +280,6 @@ export async function getFilteredOrders(
           hasSome: filters.products
         };
       }
-    }
-
-    if (filters.paymentMethod) {
-      where.paymentDetails = filters.isNot
-        ? { not: filters.paymentMethod }
-        : filters.paymentMethod;
     }
 
     if (filters.dateRange?.from || filters.dateRange?.to) {
@@ -396,7 +420,7 @@ export async function getFilteredOrders(
         data: [],
       };
     }
-
+    logger.info(where)
     page = Math.max(1, page || 1);
     pageSize = Math.max(1, Math.min(100, pageSize || 100));
     logger.info("Pagesize", pageSize)

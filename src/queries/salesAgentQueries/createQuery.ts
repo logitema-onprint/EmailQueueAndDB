@@ -18,15 +18,15 @@ export async function createQuery(salesAgentData: SalesAgenData) {
       },
     });
 
-    if (!salesAgent) {
-      logger.info("22/createQuery Sales Agent not yet exist creating new one");
-    } else {
+    if (salesAgent) {
       return {
         success: true,
         message: "Sales agent found",
         salesAgentId: salesAgent.id,
       };
     }
+    
+    logger.info("22/createQuery Sales Agent not yet exist creating new one");
 
     const newAgent = await prisma.salesAgent.create({
       data: {

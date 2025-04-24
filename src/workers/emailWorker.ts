@@ -1,14 +1,43 @@
-import { Worker, Job } from "bullmq";
+import { Worker, Job, ConnectionOptions } from "bullmq";
 import { queuesQueries } from "../queries/queuesQueries";
 import logger from "../utils/logger";
 import { tagQueries } from "../queries/tagQueries";
 import { QueueService } from "../services/queueService";
+import IORedis from "ioredis";
 
 interface EmailJob {
   jobId: string;
   tagId: number;
   tagName: string;
 }
+
+const redisOptions: ConnectionOptions = {
+  maxRetriesPerRequest: null,
+  host: process.env.REDIS_HOST || "redis",
+  port: Number(process.env.REDIS_PORT) || 6379,
+  enableReadyCheck: true,
+  connectTimeout: 10000,
+  disconnectTimeout: 2000,
+  keepAlive: 30000
+};
+
+const connection = new IORedis(redisOptions);
+
+connection.on("error", (error) => {
+  logger.error("Email worker Redis connection error:", error);
+});
+
+connection.on("connect", () => {
+  logger.info("Email worker connected to Redis");
+});
+
+connection.on("reconnecting", () => {
+  logger.info("Email worker Reconnecting to Redis");
+});
+
+connection.on("close", () => {
+  logger.warn("Email worker Redis connection closed");
+});
 
 const worker = new Worker<EmailJob>(
   "email-queue",
@@ -36,10 +65,7 @@ const worker = new Worker<EmailJob>(
     }
   },
   {
-    connection: {
-      host: "redis",
-      port: 6379,
-    },
+    connection,
     concurrency: 3,
     removeOnComplete: {
       age: 604800000,
@@ -79,8 +105,28 @@ worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
   }
 
   logger.error(
-    `Job ${job.data.tagName} failed for queue ${job.data.tagName} (Attempt ${attempt}/${maxAttempts})`
+    `Job ${job.data.tagName} failed for queue ${job.data.tagName} (Attempt ${attempt}/${maxAttempts})`,
+    err
   );
+});
+
+// Add graceful shutdown handling
+async function shutdown() {
+  logger.info('Worker shutting down...');
+  await worker.close();
+  logger.info('Worker closed');
+}
+
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received');
+  await shutdown();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received');
+  await shutdown();
+  process.exit(0);
 });
 
 export default worker;
