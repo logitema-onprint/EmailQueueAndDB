@@ -42,10 +42,9 @@ connection.on("close", () => {
 const worker = new Worker<EmailJob>(
   "email-queue",
   async (job) => {
-    const { jobId, tagId, tagName } = job.data;
+    const { jobId, tagName } = job.data;
     const currentAttempt = job.attemptsMade + 1;
-    const jobAttempt = await QueueService.getJobFromQueues(jobId);
-
+    
     await queuesQueries.updateStatusQuery(jobId, {
       status: "SENDING",
       processed: true,
@@ -54,11 +53,6 @@ const worker = new Worker<EmailJob>(
     logger.info(`Processing attempt ${currentAttempt}/3 for tag: ${tagName}`);
 
     try {
-      const shouldFail = Math.random() < 0.5;
-
-      if (shouldFail) {
-        throw new Error(`Artificial failure for tag: ${tagName}`);
-      }
       logger.success("Completed");
     } catch (error) {
       throw error;
@@ -109,24 +103,4 @@ worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
     err
   );
 });
-
-// Add graceful shutdown handling
-async function shutdown() {
-  logger.info('Worker shutting down...');
-  await worker.close();
-  logger.info('Worker closed');
-}
-
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received');
-  await shutdown();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  logger.info('SIGINT received');
-  await shutdown();
-  process.exit(0);
-});
-
 export default worker;

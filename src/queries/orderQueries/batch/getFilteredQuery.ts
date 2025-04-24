@@ -27,7 +27,6 @@ export async function getFilteredOrders(
   buildWhere?: boolean
 ) {
   try {
-    console.log(filters)
     const where: any = {};
     if (filters.paymentMethod && filters.paymentMethod.length > 0) {
       if (filters.isNot) {
@@ -420,7 +419,6 @@ export async function getFilteredOrders(
         data: [],
       };
     }
-    logger.info(where)
     page = Math.max(1, page || 1);
     pageSize = Math.max(1, Math.min(100, pageSize || 100));
     logger.info("Pagesize", pageSize)
