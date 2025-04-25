@@ -3,6 +3,7 @@ import prisma from "../../services/prisma";
 
 export interface UpdateTemplateData {
     templateName?: Template['templateName'];
+    type?: Template['type'];
     jsonUrl?: Template['jsonUrl'];
     htmlUrl?: Template['htmlUrl'];
 }

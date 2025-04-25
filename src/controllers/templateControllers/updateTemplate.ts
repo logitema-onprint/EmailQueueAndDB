@@ -8,7 +8,7 @@ export const updateTemplate: RequestHandler = async (
 ) => {
   try {
     const { id } = req.params;
-    const { htmlUrl, jsonUrl, templateName } = req.body;
+    const { htmlUrl, jsonUrl, templateName, type } = req.body;
 
     if (!id) {
       res.status(400).json({
@@ -18,18 +18,11 @@ export const updateTemplate: RequestHandler = async (
       return;
     }
 
-    if (!htmlUrl || !jsonUrl || !templateName) {
-      res.status(400).json({
-        success: false,
-        message: "Missing required fields",
-      });
-      return;
-    }
-
     const updateData = {
       htmlUrl,
       jsonUrl,
       templateName,
+      type
     };
 
     const updatedTemplate = await templateQueries.updateTemplate(

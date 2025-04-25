@@ -9,15 +9,16 @@ export const createTemplate: RequestHandler = async (
   res: Response
 ) => {
   try {
-    const { htmlUrl, jsonUrl, templateName } = req.body as TemplateData;
+    const { htmlUrl, jsonUrl, templateName, templateType } = req.body 
 
-    if (!htmlUrl || !jsonUrl || !templateName) {
+    if (!htmlUrl || !jsonUrl || !templateName || !templateType) {
       res.status(400).json({
         success: false,
         message: "Missing required fields",
       });
     }
     const data: TemplateData = {
+      type: templateType,
       htmlUrl,
       jsonUrl,
       templateName,
