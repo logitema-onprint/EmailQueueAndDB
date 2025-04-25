@@ -18,6 +18,9 @@ import { ProductMetrics } from "../queries/productQueries/updateProductMetrics";
 import { countryQueries } from "../queries/countryQueires";
 import { ProductOrderData } from "../queries/productOrder/createQuery";
 import { productOrderQueries } from "../queries/productOrder";
+import { validateOrderData } from "./validateOrderData";
+
+
 
 export async function processJsonFile(filePath: string): Promise<boolean> {
   const fileName = path.basename(filePath);
@@ -26,6 +29,12 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
     const fileContent = fs.readFileSync(filePath, "utf8");
     const jsonData = JSON.parse(fileContent);
     log.info(`Processing JSON data from file: ${fileName}`);
+
+    const validationResult = validateOrderData(jsonData)
+    if (!validationResult.isValid) {
+      log.error(`Validation failed for ${fileName}: ${validationResult.message}`);
+      return false;
+    }
 
     let items;
     if (Array.isArray(jsonData.product_details.items)) {

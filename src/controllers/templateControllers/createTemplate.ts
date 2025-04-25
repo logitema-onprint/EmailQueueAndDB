@@ -16,9 +16,11 @@ export const createTemplate: RequestHandler = async (
         success: false,
         message: "Missing required fields",
       });
+      return; // Added return statement to prevent further execution
     }
+    
     const data: TemplateData = {
-      type: templateType,
+      type: templateType, // This maps templateType from req.body to type in TemplateData
       htmlUrl,
       jsonUrl,
       templateName,
@@ -41,11 +43,11 @@ export const createTemplate: RequestHandler = async (
       data: createTemplate,
     });
   } catch (error) {
-    logger.error("Failed to create queues", error);
+    logger.error("Failed to create template", error);
 
     res.status(500).json({
       success: false,
-      message: "Failed to create queues",
+      message: "Failed to create template",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }

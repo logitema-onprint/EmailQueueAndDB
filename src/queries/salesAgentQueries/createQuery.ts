@@ -11,10 +11,8 @@ export async function createQuery(salesAgentData: SalesAgenData) {
   try {
     const salesAgent = await prisma.salesAgent.findFirst({
       where: {
-        fullText: {
-          contains: salesAgentData.fullText,
-          mode: "insensitive",
-        },
+        name: salesAgentData.name,
+        phoneNumber: salesAgentData.phoneNumber,
       },
     });
 
