@@ -20,7 +20,7 @@ export async function createQuery(salesAgentData: SalesAgenData) {
       return {
         success: true,
         message: "Sales agent found",
-        salesAgentId: salesAgent.id,
+        data: salesAgent,
       };
     }
     
@@ -35,7 +35,7 @@ export async function createQuery(salesAgentData: SalesAgenData) {
     });
 
     return {
-      success: false,
+      success: true,
       message: "Created new sales agent",
       data: newAgent,
     };

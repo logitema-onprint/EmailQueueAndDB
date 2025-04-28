@@ -74,29 +74,42 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
     const customerResult = await customerQueries.createQuery(custumerData);
     logger.info(`Customer processed: ${customerResult.message}`);
 
-    const saleAgentParts = jsonData.sales_agent_name.split(/,\s*tel\.\s*/);
+
+    logger.debug(`sales_agent_name type: ${typeof jsonData.sales_agent_name}, value: ${JSON.stringify(jsonData.sales_agent_name)}`);
+
+
+    let saleAgentParts = ["", ""];
+    if (typeof jsonData.sales_agent_name === "string" && jsonData.sales_agent_name.trim() !== "") {
+      saleAgentParts = jsonData.sales_agent_name.split(/,\s*tel\.\s*/);
+    } else {
+      logger.warn(`Invalid sales_agent_name for ${fileName}: ${JSON.stringify(jsonData.sales_agent_name)}`);
+    }
+
     const salesAgentData: SalesAgenData = {
-      fullText: jsonData.sales_agent_name,
-      name: saleAgentParts[0]?.trim() || undefined,
-      phoneNumber: saleAgentParts[1]?.trim() || undefined,
+      fullText: typeof jsonData.sales_agent_name === "string" ? jsonData.sales_agent_name : "",
+      name: saleAgentParts[0]?.trim() || "",
+      phoneNumber: saleAgentParts[1]?.trim() || "",
     };
 
     let salesAgentId = 0;
-    try {
-      const salesAgentResponse = await salesAgentQueries.createQuery(
-        salesAgentData
-      );
-      logger.info(`Sales agent processed: ${salesAgentResponse.message}`);
+    if (salesAgentData.name && salesAgentData.phoneNumber) {
+      try {
+        const salesAgentResponse = await salesAgentQueries.createQuery(
+          salesAgentData
+        );
+        logger.info(`Sales agent processed: ${salesAgentResponse.message}`);
 
-      if (salesAgentResponse.salesAgentId) {
-        salesAgentId = salesAgentResponse.salesAgentId;
-      } else if (salesAgentResponse.data?.id) {
-        salesAgentId = salesAgentResponse.data.id;
-      } else {
-        logger.warn("No sales agent ID returned, using default value 0");
+        // Simplified way to get the sales agent ID
+        if (salesAgentResponse.success && salesAgentResponse.data?.id) {
+          salesAgentId = salesAgentResponse.data.id;
+        } else {
+          logger.warn("No sales agent ID returned, using default value 0");
+        }
+      } catch (error) {
+        logger.error(`Error processing sales agent: ${error}`);
       }
-    } catch (error) {
-      logger.error(`Error processing sales agent: ${error}`);
+    } else {
+      logger.warn(`Skipping sales agent creation due to missing name or phone number: ${JSON.stringify(salesAgentData)}`);
     }
 
     for (const item of items) {

@@ -36,12 +36,7 @@ const productNames = [
   "Router", "External Hard Drive", "USB Flash Drive", "SD Card", "Gaming Console", "VR Headset", "Drone", "Action Camera", "Digital Camera", "Speaker",
   "Microphone", "Projector", "Smart TV", "Streaming Device", "E-reader", "Fitness Tracker", "Bluetooth Speaker", "Noise-Cancelling Headphones", "Wireless Earbuds", "Mechanical Keyboard",
   "Gaming Mouse", "Ultrawide Monitor", "Curved Monitor", "Portable Monitor", "All-in-One Printer", "Mesh Wi-Fi System", "NAS Drive", "SSD", "Graphics Card", "RAM Module",
-  "Motherboard", "CPU", "Power Supply Unit", "Computer Case", "Laptop Stand", "Cooling Pad", "Docking Station", "USB Hub", "Cable Organizer", "Surge Protector",
-  "Portable Charger", "Power Bank", "Wireless Charger", "Car Charger", "Wall Charger", "Travel Adapter", "Smart Plug", "Smart Bulb", "Smart Thermostat", "Security Camera",
-  "Video Doorbell", "Smart Lock", "Robot Vacuum", "Air Purifier", "Humidifier", "Dehumidifier", "Blender", "Coffee Maker", "Toaster", "Microwave Oven",
-  "Electric Kettle", "Instant Pot", "Air Fryer", "Slow Cooker", "Food Processor", "Stand Mixer", "Juicer", "Water Filter Pitcher", "Vacuum Sealer", "Sous Vide Cooker",
-  "Digital Scale", "Measuring Cups", "Mixing Bowls", "Cookware Set", "Bakeware Set", "Knife Set", "Cutting Board", "Utensil Set", "Dish Rack", "Trash Can",
-  "Desk Chair", "Standing Desk", "Bookshelf", "Filing Cabinet", "Desk Lamp", "Monitor Arm", "Ergonomic Mousepad", "Foot Rest", "Office Plant", "Whiteboard"
+  "Motherboard", "CPU", "Power Supply Unit", "Computer Case", "Laptop Stand", "Cooling Pad", "Docking Station", "USB Hub", "Cable Organizer", "Surge Protector"
 ];
 
 const countries = [
@@ -106,6 +101,7 @@ function generateRandomProductItem(baseIndex: number, itemIndex: number) {
 }
 
 function generateRandomJsonFile(isError: boolean, index: number) {
+  // Fixed sales agents with consistent name-number associations
   const salesAgents = [
     "John Doe, tel. 123456789",
     "Jane Smith, tel. 987654321",
