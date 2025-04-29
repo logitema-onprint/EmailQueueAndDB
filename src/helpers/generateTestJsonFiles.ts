@@ -65,10 +65,10 @@ const cities = [
   "Port Vila", "Palikir", "Majuro", "Ngerulmud", "Jerusalem", "Amman", "Beirut", "Damascus", "Baghdad", "Kuwait City"
 ];
 
-const orderStatuses = ["Processing", "Shipped", "Delivered", "Cancelled", "Pending Payment", "On Hold", "Completed", "Refunded"];
-const paymentMethods = ["Credit Card", "PayPal", "Bank Transfer", "Cash on Delivery", "Grynais užsakant"];
-const paymentStatuses = ["Paid", "Pending", "Failed", "Refunded", "Apmokėta"];
-const productStatuses = ["In Stock", "Out of Stock", "Pre-order", "Discontinued", "Maketas patvirtintas"];
+const orderStatuses = ["Processing", "Shipped", "Delivered", "Completed", "Pending Payment", "On Hold"];
+const paymentMethods = ["Credit Card", "PayPal", "Bank Transfer", "Cash on Delivery"];
+
+const productStatuses = ["In Stock", "Out of Stock", "Pre-order", "Available", "Ready"];
 
 function getRandomElement<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -90,7 +90,7 @@ function generateRandomProductItem(baseIndex: number, itemIndex: number) {
     products_price: price,
     products_quantity: `${quantity}`,
     orders_products_id: `${90000 + baseIndex * 10 + itemIndex}`, // Unique product order ID
-    products_sku: Math.random() > 0.7 ? {} : `SKU-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+    products_sku: `SKU-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
     product_status_id: `${Math.floor(1 + Math.random() * 20)}`,
     product_status: getRandomElement(productStatuses),
     product_id: `${1000 + baseIndex + itemIndex}`, // Semi-unique product ID
@@ -100,16 +100,13 @@ function generateRandomProductItem(baseIndex: number, itemIndex: number) {
   };
 }
 
-function generateRandomJsonFile(isError: boolean, index: number) {
+function generateRandomJsonFile(index: number) {
   // Fixed sales agents with consistent name-number associations
   const salesAgents = [
     "John Doe, tel. 123456789",
-    "Jane Smith, tel. 987654321",
-    "Michael Brown, tel. 555666777",
-    "Emily Davis, tel. 444333222",
-    {}, // Potential error case
-    null, // Potential error case
-    "Just Name", // Potential error case
+    "Robert Johnson, tel. 111222333",
+    "Sarah Wilson, tel. 777888999",
+    "David Miller, tel. 333444555",
   ];
 
   const randomFirstName = getRandomElement(firstNames);
@@ -129,15 +126,15 @@ function generateRandomJsonFile(isError: boolean, index: number) {
   const totalAmount = productItems.reduce((sum, item) => sum + parseFloat(item.products_price) * parseInt(item.products_quantity), 0);
 
   const baseData: any = {
-    orders_id: `${60000 + index}`,
-    order_number: `${60000 + index}`,
-    user_id: `${300 + index}`,
+    orders_id: `${70000 + index}`,
+    order_number: `${70000 + index}`,
+    user_id: `${1000 + index}`,
     corporate_id: Math.random() > 0.9 ? `${Math.floor(10 + Math.random() * 90)}` : "0",
     order_status: getRandomElement(orderStatuses),
     orders_status_id: `${Math.floor(1 + Math.random() * 30)}`,
     orders_date_finished: orderDateFinished,
-    airway_bill_number: Math.random() > 0.8 ? `AWB${Math.floor(100000 + Math.random() * 900000)}` : {},
-    printer_name: Math.random() > 0.7 ? `${getRandomElement(firstNames)} Printer` : `Printer ${index}`,
+    airway_bill_number: Math.random() > 0.8 ? `AWB${Math.floor(100000 + Math.random() * 900000)}` : "",
+    printer_name: `${getRandomElement(firstNames)} Printer`,
     payment_method_name: getRandomElement(paymentMethods),
     total_amount: totalAmount.toFixed(2),
     order_amount: (totalAmount * 0.8).toFixed(2), // Example calculation
@@ -147,16 +144,16 @@ function generateRandomJsonFile(isError: boolean, index: number) {
     orders_due_date: dueDate,
     orders_extrafield: Math.random() > 0.95 ? { custom_note: "Rush order" } : {},
     order_last_modified_date: getRandomDate(new Date(orderDateFinished), new Date()),
-    po_number: Math.random() > 0.85 ? `PO-${Math.floor(1000 + Math.random() * 9000)}` : {},
+    po_number: Math.random() > 0.85 ? `PO-${Math.floor(1000 + Math.random() * 9000)}` : "",
     placed_by: `${randomFirstName} ${randomLastName} | ${customerPhone} | ${customerEmail}`,
     payment_due_date: dueDate,
-    transactionid: Math.random() > 0.7 ? `txn_${Math.random().toString(36).substring(2, 15)}` : {},
+    transactionid: Math.random() > 0.7 ? `txn_${Math.random().toString(36).substring(2, 15)}` : "",
     production_due_date: dueDate,
     payment_date: Math.random() > 0.5 ? getRandomDate(new Date(orderDateFinished), new Date()) : orderDateFinished,
-    invoice_number: Math.random() > 0.6 ? `INV-${60000 + index}` : {},
-    invoice_date: Math.random() > 0.6 ? getRandomDate(new Date(orderDateFinished), new Date()) : {},
+    invoice_number: Math.random() > 0.6 ? `INV-${60000 + index}` : "",
+    invoice_date: Math.random() > 0.6 ? getRandomDate(new Date(orderDateFinished), new Date()) : orderDateFinished,
     sales_agent_name: getRandomElement(salesAgents),
-    payment_status_title: getRandomElement(paymentStatuses),
+    payment_status_title: "Apmokėta",
     process_status_set_as: Math.random() > 0.5 ? "Completed" : "Pending",
 
     product_details: {
@@ -167,92 +164,40 @@ function generateRandomJsonFile(isError: boolean, index: number) {
       customers_name: customerName,
       customers_first_name: randomFirstName,
       customers_last_name: randomLastName,
-      customers_company: Math.random() > 0.7 ? `${randomLastName} Inc.` : {},
+      customers_company: Math.random() > 0.7 ? `${randomLastName} Inc.` : "",
       customers_telephone: customerPhone,
       extrafield: {},
       customers_email_address: customerEmail,
       customers_register_date: registerDate,
-      reward_points: Math.random() > 0.8 ? `${Math.floor(Math.random() * 500)}` : {},
+      reward_points: Math.random() > 0.8 ? `${Math.floor(Math.random() * 500)}` : "0",
     },
 
     shipping_details: { // Often similar to billing or customer
       delivery_name: customerName,
-      delivery_company: Math.random() > 0.8 ? `${randomLastName} Logistics` : {},
+      delivery_company: Math.random() > 0.8 ? `${randomLastName} Logistics` : "",
       delivery_street_address: `${Math.floor(1 + Math.random() * 1000)} Main St`,
-      delivery_suburb: Math.random() > 0.9 ? `Suburb ${index}` : {},
+      delivery_suburb: Math.random() > 0.9 ? `Suburb ${index}` : "",
       delivery_city: randomCity,
       delivery_postcode: `${Math.floor(10000 + Math.random() * 89999)}`,
-      delivery_state: Math.random() > 0.8 ? `State ${index % 50}` : {},
+      delivery_state: Math.random() > 0.8 ? `State ${index % 50}` : "",
       delivery_country: randomCountry,
       shipping_extrafield: {},
-      delivery_state_code: Math.random() > 0.9 ? `${randomCountry.substring(0, 2).toUpperCase()}${index % 50}` : {},
+      delivery_state_code: Math.random() > 0.9 ? `${randomCountry.substring(0, 2).toUpperCase()}${index % 50}` : "",
     },
 
     billing_details: { // Often similar to shipping or customer
       billing_name: customerName,
-      billing_company: Math.random() > 0.75 ? `${randomLastName} Holdings` : {},
+      billing_company: Math.random() > 0.75 ? `${randomLastName} Holdings` : "",
       billing_street_address: `${Math.floor(1 + Math.random() * 1000)} Main St`,
-      billing_suburb: {},
+      billing_suburb: "",
       billing_city: randomCity,
       billing_postcode: `${Math.floor(10000 + Math.random() * 89999)}`,
-      billing_state: {},
+      billing_state: "",
       billing_country: randomCountry,
       billing_extrafield: {},
-      billing_state_code: {},
+      billing_state_code: "",
     }
   };
-
-  // --- Introduce Errors for 30% of files ---
-  if (isError) {
-    const errorType = Math.floor(Math.random() * 10); // Introduce different types of errors
-
-    switch (errorType) {
-      case 0: // Missing required root field
-        delete baseData.orders_date_finished;
-        break;
-      case 1: // Missing required nested field
-        if (baseData.customer_details) delete baseData.customer_details.customers_name;
-        break;
-      case 2: // Incorrect data type
-        baseData.sales_agent_name = {}; // Common error from logs
-        break;
-      case 3: // Incorrect data type (amount)
-        baseData.total_amount = null;
-        break;
-      case 4: // Missing nested object
-        delete baseData.billing_details;
-        break;
-      case 5: // Empty required string
-        if (baseData.customer_details) baseData.customer_details.customers_email_address = "";
-        break;
-      case 6: // Invalid date format
-        baseData.orders_date_finished = "25-04-2025";
-        break;
-      case 7: // Missing product items entirely
-         if (baseData.product_details) delete baseData.product_details.items;
-         break;
-      case 8: // Missing product price in one item
-        if (baseData.product_details && baseData.product_details.items) {
-            if (Array.isArray(baseData.product_details.items)) {
-                if (baseData.product_details.items.length > 0) delete baseData.product_details.items[0].products_price;
-            } else {
-                 delete baseData.product_details.items.products_price;
-            }
-        }
-        break;
-      case 9: // Sales agent name is just null
-        baseData.sales_agent_name = null;
-        break;
-      default: // Make sales_agent_name an empty object as a fallback error
-         baseData.sales_agent_name = {};
-         break;
-    }
-  }
-
-  // --- Final check for specific null/undefined values that might break JSON.stringify ---
-  // (Optional, but can prevent crashes if complex logic introduces undefined)
-  // Example: if (baseData.someOptionalField === undefined) delete baseData.someOptionalField;
-
 
   return JSON.stringify(baseData, null, 2);
 }
@@ -262,48 +207,23 @@ function createTestFiles() {
   if (!fs.existsSync(hotfolder)) {
     fs.mkdirSync(hotfolder, { recursive: true });
   }
-  if (!fs.existsSync(hotfolder)) {
-    fs.mkdirSync(hotfolder, { recursive: true });
-  }
 
-  const totalFiles = 10000;
-  const errorFilesCount = Math.floor(totalFiles * 0.3); // 30% error files
-  // const processedFilesCount = totalFiles - errorFilesCount; // 70% processed files
+  const totalFiles = 20000;
+  console.log(`Generating ${totalFiles} files...`);
 
-  console.log(`Generating ${totalFiles} files (${errorFilesCount} errors, ${totalFiles - errorFilesCount} processed)...`);
-
-  const userCache = new Map(); // Cache to reuse users
-
-  // Create error files
-  for (let i = 1; i <= errorFilesCount; i++) {
-    const fileName = `orders_${60000 + i}.json`;
+  // Create files
+  for (let i = 1; i <= totalFiles; i++) {
+    const fileName = `orders_${1 + i}.json`;
     const filePath = path.join(hotfolder, fileName);
     try {
-      const userId = Math.floor(i / 1000) * 1000 + (i % 1000); // Reuse users every 1k orders
-      const fileContent = generateRandomJsonFile(true, userId);
+      const userId = Math.floor(i / 1000) * 1000 + (i % 1000);
+      const fileContent = generateRandomJsonFile(userId);
       fs.writeFileSync(filePath, fileContent, 'utf8');
     } catch (e) {
-      console.error(`Error generating error file ${fileName}:`, e);
+      console.error(`Error generating file ${fileName}:`, e);
     }
-    if (i % 500 === 0) console.log(`Generated ${i} error files...`);
+    if (i % 500 === 0) console.log(`Generated ${i} files...`);
   }
-
-  console.log(`Finished generating ${errorFilesCount} error files.`);
-
-  // Create processed files
-  for (let i = errorFilesCount + 1; i <= totalFiles; i++) {
-    const fileName = `orders_${60000 + i}.json`;
-    const filePath = path.join(hotfolder, fileName);
-    try {
-      const userId = Math.floor(i / 1000) * 1000 + (i % 1000); // Reuse users every 1k orders
-      const fileContent = generateRandomJsonFile(false, userId);
-      fs.writeFileSync(filePath, fileContent, 'utf8');
-    } catch (e) {
-      console.error(`Error generating processed file ${fileName}:`, e);
-    }
-    if (i % 500 === 0) console.log(`Generated ${i - errorFilesCount} processed files...`);
-  }
-  console.log(`Finished generating ${totalFiles - errorFilesCount} processed files.`);
 
   console.log(`${totalFiles} test JSON files generated successfully!`);
 }

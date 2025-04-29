@@ -8,6 +8,9 @@ const HOTFOLDER_PATH = path.resolve("hotfolder");
 const PROCESSED_PATH = path.resolve(process.cwd(), "hotfolder/processed");
 const ERROR_PATH = path.resolve(process.cwd(), "hotfolder/error");
 
+const fileQueue: string[] = [];
+let isProcessing = false;
+
 function ensureDirectoryExist() {
   [HOTFOLDER_PATH, PROCESSED_PATH, ERROR_PATH].forEach((dir) => {
     if (!fs.existsSync(dir)) {
@@ -17,13 +20,22 @@ function ensureDirectoryExist() {
   });
 }
 
-async function processNewFile(filePath: string) {
+async function processFileQueue() {
+  if (isProcessing || fileQueue.length === 0) return;
+
+  isProcessing = true;
+  const filePath = fileQueue.shift()!;
   const fileName = path.basename(filePath);
 
-  log.info(`New file detected: ${fileName}`);
+  log.info(`Processing file from queue: ${fileName}`);
 
   try {
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    if (!fs.existsSync(filePath)) {
+      log.warn(`File no longer exists: ${fileName}, skipping processing`);
+      isProcessing = false;
+      processFileQueue(); 
+      return;
+    }
 
     if (fileName.endsWith(".json")) {
       const success = await processJsonFile(filePath);
@@ -32,14 +44,30 @@ async function processNewFile(filePath: string) {
       }
     }
 
-    const destinationPath = path.join(PROCESSED_PATH, fileName);
-    fs.renameSync(filePath, destinationPath);
-    log.info(`Successfully processed and moved file to: ${destinationPath}`);
+    if (fs.existsSync(filePath)) {
+      const destinationPath = path.join(PROCESSED_PATH, fileName);
+      fs.renameSync(filePath, destinationPath);
+      log.info(`Successfully processed and moved file to: ${destinationPath}`);
+    } else {
+      log.warn(`File disappeared after processing: ${fileName}`);
+    }
   } catch (error) {
     log.error(`Error processing file ${fileName}: ${error}`);
-    const errorPath = path.join(ERROR_PATH, fileName);
-    fs.renameSync(filePath, errorPath);
-    log.error(`Moved file to error folder: ${errorPath}`);
+
+    try {
+      if (fs.existsSync(filePath)) {
+        const errorPath = path.join(ERROR_PATH, fileName);
+        fs.renameSync(filePath, errorPath);
+        log.error(`Moved file to error folder: ${errorPath}`);
+      } else {
+        log.warn(`Cannot move non-existent file to error folder: ${fileName}`);
+      }
+    } catch (moveError) {
+      log.error(`Failed to move file to error folder: ${moveError}`);
+    }
+  } finally {
+    isProcessing = false;
+    setTimeout(() => processFileQueue(), 100);
   }
 }
 
@@ -50,10 +78,29 @@ function initHotfolder() {
     ignored: [/(^|[/\\])\../, "**/processed/**", "**/error/**"],
     persistent: true,
     depth: 0,
+    awaitWriteFinish: {
+      stabilityThreshold: 2000,
+      pollInterval: 100
+    }
   });
 
   watcher
-    .on("add", (filePath: string) => processNewFile(filePath))
+    .on("add", (filePath: string) => {
+      const fileName = path.basename(filePath);
+      log.info(`New file detected: ${fileName}`);
+
+      if (!fileQueue.includes(filePath)) {
+        fileQueue.push(filePath);
+        processFileQueue();
+      }
+    })
+    .on("unlink", (filePath: string) => {
+      const index = fileQueue.indexOf(filePath);
+      if (index !== -1) {
+        fileQueue.splice(index, 1);
+        log.info(`Removed deleted file from queue: ${path.basename(filePath)}`);
+      }
+    })
     .on("error", (error: unknown) => log.error(`Watcher error: ${error}`));
 
   log.info(`Hotfolder watcher initialized at: ${HOTFOLDER_PATH}`);

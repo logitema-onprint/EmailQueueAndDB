@@ -16,7 +16,11 @@ export function validateOrderData(jsonData: any): ValidationResult {
             return { isValid: false, message: `Missing required field: ${field}` };
         }
     }
-    
+
+    if (jsonData.payment_status_title !== 'Apmokėta') {
+        return { isValid: false, message: 'Order is not paid skiping it' }
+    }
+
     // Validate sales_agent_name to ensure it includes both a name and a phone number
     if (typeof jsonData.sales_agent_name !== 'string' || !jsonData.sales_agent_name.includes('tel.')) {
         return { isValid: false, message: 'Invalid sales_agent_name: must include both a name and a phone number' };
