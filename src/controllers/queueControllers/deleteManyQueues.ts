@@ -37,8 +37,9 @@ export const deleteManyQueues: RequestHandler = async (
         for (const { jobId, job } of queueJobResults) {
             if (job && job.job) {
                 try {
+                    const status = await job.job.getState()
                     await job.job.remove();
-                    if (job.data?.tagId) {
+                    if (job.data?.tagId && status !== "completed") {
                         await tagQueries.updateTagCount(job.data?.tagId, 'decrement')
                     }
 
@@ -51,9 +52,6 @@ export const deleteManyQueues: RequestHandler = async (
         }
 
         const deleteResult = await queuesQueries.deleteManyJobs({ jobIds: jobIds })
-
-
-
 
         res.status(200).json({
             success: true,

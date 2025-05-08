@@ -13,6 +13,10 @@ const requiredEnvVars = {
   QUEUE_TAG_TABLE: process.env.QUEUE_TAG_TABLE,
   ORDER_TABLE_NAME: process.env.ORDER_TABLE_NAME,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+  S3_BUCKET_KEY_ID: process.env.S3_BUCKET_KEY_ID,
+  S3_BUCKET_ACCESS_KEY: process.env.S3_BUCKET_ACCESS_KEY,
+  S3_TEMPLATE_BUCKET_NAME: process.env.S3_TEMPLATE_BUCKET_NAME,
+  OPEN_AI_KEY: process.env.OPEN_AI_KEY,
   // TENANT_ID: process.env.TENANT_ID,
   // CLIENT_ID: process.env.CLIENT_ID,
   // CLIENT_SECRET: process.env.CLIENT_SECRET,
@@ -48,6 +52,9 @@ const config = {
     access: process.env.ACCESS_KEY!,
     secret: process.env.SECRET_ACCESS_KEY!,
     region: process.env.REGION!,
+    templateBucket: process.env.S3_TEMPLATE_BUCKET_NAME!,
+    templateBucketKey: process.env.S3_BUCKET_KEY_ID!,
+    templateBucketAccess: process.env.S3_BUCKET_ACCESS_KEY!,
   },
   next: {
     secret: process.env.REVALIDATE_SECRET_QUEUES,
@@ -59,6 +66,9 @@ const config = {
     tenat: process.env.TENANT_ID,
     client: process.env.CLIENT_ID,
   },
+  openAi: {
+    key: process.env.OPEN_AI_KEY,
+  }
 } as const;
 
 export default config;

@@ -1,6 +1,7 @@
 import { createTemplate } from "./createTemplate";
 import { deleteTemplate } from "./deleteTemplate";
 import { getAllTemplates } from "./getAllTemplates";
+import { getHtmlContent } from "./getHtmlConent";
 import { getTemplate } from "./getTemplate";
 import { updateTemplate } from "./updateTemplate";
 import { updateTemplateType } from "./updateTemplateType";
@@ -11,5 +12,6 @@ export const templateQueries = {
   updateTemplate,
   getTemplate,
   deleteTemplate,
-  updateTemplateType
+  updateTemplateType,
+  getHtmlContent
 };

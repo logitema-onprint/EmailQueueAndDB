@@ -2,8 +2,11 @@ import { Worker, Job, ConnectionOptions } from "bullmq";
 import { queuesQueries } from "../queries/queuesQueries";
 import logger from "../utils/logger";
 import { tagQueries } from "../queries/tagQueries";
-import { QueueService } from "../services/queueService";
 import IORedis from "ioredis";
+import { log } from "console";
+import { orderQueries } from "../queries/orderQueries";
+import { templateQueries } from "../queries/templateQueries";
+import { openai } from "../services/openAi";
 
 interface EmailJob {
   jobId: string;
@@ -44,7 +47,33 @@ const worker = new Worker<EmailJob>(
   async (job) => {
     const { jobId, tagName } = job.data;
     const currentAttempt = job.attemptsMade + 1;
-    
+
+    const queue = await queuesQueries.getQuery(jobId)
+    const tag = await tagQueries.getTag(job.data.tagId)
+
+    if (queue.item?.orderId && tag.data?.templateId) {
+      const order = await orderQueries.getOrder(queue.item.orderId)
+      const template = await templateQueries.getTemplate(tag.data?.templateId)
+
+      const htmlContent = await templateQueries.getHtmlContent(template.data?.htmlUrl || "")
+
+      const completion = openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        store: true,
+        messages: [
+          {"role": "user", "content": "write a haiku about ai"},
+        ],
+      });
+      
+      completion.then((result) => console.log(result.choices[0].message));
+
+      logger.info("HTML Content:", htmlContent?.htmlContent)
+      logger.info(template)
+      logger.info(order)
+    }
+
+
+
     await queuesQueries.updateStatusQuery(jobId, {
       status: "SENDING",
       processed: true,
