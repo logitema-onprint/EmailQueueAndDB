@@ -56,23 +56,7 @@ const worker = new Worker<EmailJob>(
       const template = await templateQueries.getTemplate(tag.data?.templateId)
 
       const htmlContent = await templateQueries.getHtmlContent(template.data?.htmlUrl || "")
-
-      const completion = openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        store: true,
-        messages: [
-          {"role": "user", "content": "write a haiku about ai"},
-        ],
-      });
-      
-      completion.then((result) => console.log(result.choices[0].message));
-
-      logger.info("HTML Content:", htmlContent?.htmlContent)
-      logger.info(template)
-      logger.info(order)
     }
-
-
 
     await queuesQueries.updateStatusQuery(jobId, {
       status: "SENDING",
