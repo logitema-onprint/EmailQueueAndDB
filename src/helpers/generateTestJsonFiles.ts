@@ -23,6 +23,8 @@ const lastNames = [
   "Berzina", "Kalniņa", "Ozola", "Liepa", "Jansone", "Krūmiņa", "Putniņa", "Zariņa", "Vilka", "Leitisa"
 ];
 
+const emailDomains = ["gmail.com", "inbox.lv", "mail.lt", "yahoo.com", "hotmail.com"];
+
 const productNames = [
   "Skrajutės A6", "Skrajutės A5", "Skrajutės A4", "Skrajutės DL",
   "Vizitinės kortelės vienpusės", "Vizitinės kortelės dvipusės", "Vizitinės kortelės su laku",
@@ -44,7 +46,6 @@ const cities = [
 
 const orderStatuses = ["Processing", "Shipped", "Delivered", "Completed", "Pending Payment", "On Hold"];
 const paymentMethods = ["Credit Card", "PayPal", "Bank Transfer", "Cash on Delivery"];
-
 const productStatuses = ["In Stock", "Out of Stock", "Pre-order", "Available", "Ready"];
 
 function getRandomElement<T>(arr: T[]): T {
@@ -63,7 +64,7 @@ function generateRandomProductItem(baseIndex: number, itemIndex: number) {
 
   return {
     products_name: randomProductName,
-    products_title: `${randomProductName} - ${getRandomElement(["Standard", "Premium", "Basic", "Deluxe", "Limited Edition"])}`,
+    products_title: randomProductName,
     products_price: price,
     products_quantity: `${quantity}`,
     orders_products_id: `${90000 + baseIndex * 10 + itemIndex}`,
@@ -78,11 +79,11 @@ function generateRandomProductItem(baseIndex: number, itemIndex: number) {
 }
 
 function generateRandomJsonFile(index: number) {
+  const salesAgentFirstName = getRandomElement(firstNames);
+  const salesAgentLastName = getRandomElement(lastNames);
+  
   const salesAgents = [
-    "Jonas Kazlauskas, tel. 123456789",
-    "Petras Petrauskas, tel. 111222333",
-    "Jānis Berzins, tel. 777888999",
-    "Andris Kalniņš, tel. 333444555",
+    `${salesAgentFirstName} ${salesAgentLastName}, tel. ${Math.floor(100000000 + Math.random() * 900000000)}`,
   ];
 
   const randomFirstName = getRandomElement(firstNames);
@@ -90,7 +91,7 @@ function generateRandomJsonFile(index: number) {
   const randomCountry = getRandomElement(countries);
   const randomCity = getRandomElement(cities);
   const customerName = `${randomFirstName} ${randomLastName}`;
-  const customerEmail = `${randomFirstName.toLowerCase()}.${randomLastName.toLowerCase()}${index}@example.com`;
+  const customerEmail = `${randomFirstName.toLowerCase()}.${randomLastName.toLowerCase()}${index}@${getRandomElement(emailDomains)}`;
   const customerPhone = `+370${Math.floor(60000000 + Math.random() * 9999999)}`;
   const registerDate = getRandomDate(new Date(2015, 0, 1), new Date(2024, 11, 31));
   const orderDateFinished = getRandomDate(new Date(2025, 0, 1), new Date());
