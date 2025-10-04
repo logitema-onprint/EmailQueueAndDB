@@ -10,7 +10,7 @@ export class EmailService {
     to: string,
     subject: string,
     html: string[] | string
-  ): Promise<void> {
+  ): Promise<{ sucess: boolean; message?: string }> {
     try {
       const sendEmail = await this.resend.emails.send({
         from: this.fromEmail,
@@ -19,9 +19,22 @@ export class EmailService {
         html: Array.isArray(html) ? html.join("") : html,
       });
 
-      console.log("Email sent successfully:", sendEmail);
-      console.log("Response ID:", sendEmail.data?.id);
-      console.log("Status:", sendEmail.error?.message);
+      if (sendEmail.error?.message) {
+        logger.error(
+          `Error sending email:${sendEmail.error.name} : ${sendEmail.error.message} `
+        );
+        return {
+          sucess: false,
+        };
+      }
+
+      if (sendEmail.data?.id) {
+        logger.success(`Email sent to ${to} with subject "${subject}"`);
+      }
+      return {
+        sucess: true,
+        message: "Email sent successfully",
+      }
     } catch (error) {
       logger.error("Failed to send email:", error);
       throw error;
