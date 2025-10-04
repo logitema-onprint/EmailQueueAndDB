@@ -17,9 +17,8 @@ const requiredEnvVars = {
   S3_BUCKET_ACCESS_KEY: process.env.S3_BUCKET_ACCESS_KEY,
   S3_TEMPLATE_BUCKET_NAME: process.env.S3_TEMPLATE_BUCKET_NAME,
   OPEN_AI_KEY: process.env.OPEN_AI_KEY,
-  // TENANT_ID: process.env.TENANT_ID,
-  // CLIENT_ID: process.env.CLIENT_ID,
-  // CLIENT_SECRET: process.env.CLIENT_SECRET,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  EMAIL_DOMAIN: process.env.EMAIL_DOMAIN,
 } as const;
 
 const missingVars = Object.entries(requiredEnvVars)
@@ -68,7 +67,11 @@ const config = {
   },
   openAi: {
     key: process.env.OPEN_AI_KEY,
-  }
+  },
+  resend: {
+    apiKey: process.env.RESEND_API_KEY,
+    emailDomain: process.env.EMAIL_DOMAIN,
+  },
 } as const;
 
 export default config;

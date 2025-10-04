@@ -4,6 +4,7 @@ import logger from "../../utils/logger";
 
 export interface TemplateData {
   templateName: string;
+  templateSubject: string;
   type: string;
   htmlUrl: string;
   jsonUrl: string;
@@ -15,6 +16,7 @@ export async function createTemplate(templateData: TemplateData) {
       data: {
         type: templateData.type,
         templateName: templateData.templateName,
+        subject: templateData.templateSubject,
         htmlUrl: templateData.htmlUrl,
         jsonUrl: templateData.jsonUrl,
       },

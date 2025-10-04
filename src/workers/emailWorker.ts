@@ -3,10 +3,9 @@ import { queuesQueries } from "../queries/queuesQueries";
 import logger from "../utils/logger";
 import { tagQueries } from "../queries/tagQueries";
 import IORedis from "ioredis";
-import { log } from "console";
 import { orderQueries } from "../queries/orderQueries";
 import { templateQueries } from "../queries/templateQueries";
-import { openai } from "../services/openAi";
+import { EmailService } from "../services/emailService";
 
 interface EmailJob {
   jobId: string;
@@ -21,7 +20,7 @@ const redisOptions: ConnectionOptions = {
   enableReadyCheck: true,
   connectTimeout: 10000,
   disconnectTimeout: 2000,
-  keepAlive: 30000
+  keepAlive: 30000,
 };
 
 const connection = new IORedis(redisOptions);
@@ -48,16 +47,6 @@ const worker = new Worker<EmailJob>(
     const { jobId, tagName } = job.data;
     const currentAttempt = job.attemptsMade + 1;
 
-    const queue = await queuesQueries.getQuery(jobId)
-    const tag = await tagQueries.getTag(job.data.tagId)
-
-    if (queue.item?.orderId && tag.data?.templateId) {
-      const order = await orderQueries.getOrder(queue.item.orderId)
-      const template = await templateQueries.getTemplate(tag.data?.templateId)
-
-      const htmlContent = await templateQueries.getHtmlContent(template.data?.htmlUrl || "")
-    }
-
     await queuesQueries.updateStatusQuery(jobId, {
       status: "SENDING",
       processed: true,
@@ -65,11 +54,55 @@ const worker = new Worker<EmailJob>(
     });
     logger.info(`Processing attempt ${currentAttempt}/3 for tag: ${tagName}`);
 
-    try {
-      logger.success("Completed");
-    } catch (error) {
-      throw error;
+    const queue = await queuesQueries.getQuery(jobId);
+    const tag = await tagQueries.getTag(job.data.tagId);
+
+    if (!queue.item?.orderId || !tag.data?.templateId) {
+      throw new Error("Missing orderId or templateId");
     }
+
+    const order = await orderQueries.getOrder(queue.item.orderId);
+    const template = await templateQueries.getTemplate(tag.data.templateId);
+
+    const htmlContent = await templateQueries.getHtmlContent(
+      template.data?.htmlUrl || ""
+    );
+
+    const variableMap: Record<string, string> = {
+      orderId: order.data?.id?.toString() || "",
+      firstName: order.data?.userName || "",
+      lastName: order.data?.userSurname || "",
+      products: order.data?.productNames?.join(", ") || "",
+      orderDate: order.data?.orderDate || "",
+    };
+
+    let finalHtml = htmlContent.htmlContent || "";
+
+    htmlContent.uniqueVariables?.forEach((variable: string) => {
+      const value = variableMap[variable];
+      if (value !== undefined) {
+        finalHtml = finalHtml.replace(
+          new RegExp(`\\{${variable}\\}`, "g"),
+          value
+        );
+      }
+    });
+
+    if (!order.data?.email || !template.data?.subject) {
+      throw new Error("Missing email or subject");
+    }
+
+    const sendEmail = await EmailService.sendEmail(
+      order.data.email,
+      template.data.subject,
+      finalHtml
+    );
+
+    if (!sendEmail.sucess) {
+      throw new Error(sendEmail.message || "Failed to send email");
+    }
+
+    logger.success("Email sent successfully");
   },
   {
     connection,
@@ -88,13 +121,17 @@ worker.on("completed", async (job: Job<EmailJob>) => {
   });
 
   if (!updateStatus.success) {
-    logger.error(updateStatus.message, updateStatus.error, updateStatus.response)
+    logger.error(
+      updateStatus.message,
+      updateStatus.error,
+      updateStatus.response
+    );
   }
 
   await tagQueries.updateTagCount(tagId, "decrement");
 });
 
-worker.on("active", async (job: Job<EmailJob>) => { });
+worker.on("active", async (job: Job<EmailJob>) => {});
 
 worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
   if (!job) {
@@ -107,13 +144,14 @@ worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
 
   await queuesQueries.updateStatusQuery(job.data.jobId, { status: "FAILED" });
 
-  if (attempt === 3) {
+  if (attempt === maxAttempts) {
     await tagQueries.updateTagCount(job.data.tagId, "decrement");
   }
 
   logger.error(
-    `Job ${job.data.tagName} failed for queue ${job.data.tagName} (Attempt ${attempt}/${maxAttempts})`,
+    `Job ${job.data.tagName} failed (Attempt ${attempt}/${maxAttempts})`,
     err
   );
 });
+
 export default worker;

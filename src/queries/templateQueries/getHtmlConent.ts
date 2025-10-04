@@ -29,7 +29,8 @@ export async function getHtmlContent(url: string) {
 
         return {
             success: true,
-            htmlContent: variables
+            htmlContent: bodyContents,
+            uniqueVariables: uniqueVariables
         }
     } catch (error) {
         logger.error("Error fetching HTML content:", error);
