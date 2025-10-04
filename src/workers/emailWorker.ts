@@ -7,6 +7,7 @@ import { log } from "console";
 import { orderQueries } from "../queries/orderQueries";
 import { templateQueries } from "../queries/templateQueries";
 import { openai } from "../services/openAi";
+import { EmailService } from "../services/emailService";
 
 interface EmailJob {
   jobId: string;
@@ -21,7 +22,7 @@ const redisOptions: ConnectionOptions = {
   enableReadyCheck: true,
   connectTimeout: 10000,
   disconnectTimeout: 2000,
-  keepAlive: 30000
+  keepAlive: 30000,
 };
 
 const connection = new IORedis(redisOptions);
@@ -48,14 +49,24 @@ const worker = new Worker<EmailJob>(
     const { jobId, tagName } = job.data;
     const currentAttempt = job.attemptsMade + 1;
 
-    const queue = await queuesQueries.getQuery(jobId)
-    const tag = await tagQueries.getTag(job.data.tagId)
+    const queue = await queuesQueries.getQuery(jobId);
+    const tag = await tagQueries.getTag(job.data.tagId);
 
     if (queue.item?.orderId && tag.data?.templateId) {
-      const order = await orderQueries.getOrder(queue.item.orderId)
-      const template = await templateQueries.getTemplate(tag.data?.templateId)
+      const order = await orderQueries.getOrder(queue.item.orderId);
+      const template = await templateQueries.getTemplate(tag.data?.templateId);
 
-      const htmlContent = await templateQueries.getHtmlContent(template.data?.htmlUrl || "")
+      const htmlContent = await templateQueries.getHtmlContent(
+        template.data?.htmlUrl || ""
+      );
+
+      if (htmlContent?.htmlContent && order.data?.email && template.data?.subject) {
+        await EmailService.sendEmail(
+          order.data?.email,
+          template.data?.subject,
+          htmlContent.htmlContent
+        );
+      }
     }
 
     await queuesQueries.updateStatusQuery(jobId, {
@@ -88,13 +99,17 @@ worker.on("completed", async (job: Job<EmailJob>) => {
   });
 
   if (!updateStatus.success) {
-    logger.error(updateStatus.message, updateStatus.error, updateStatus.response)
+    logger.error(
+      updateStatus.message,
+      updateStatus.error,
+      updateStatus.response
+    );
   }
 
   await tagQueries.updateTagCount(tagId, "decrement");
 });
 
-worker.on("active", async (job: Job<EmailJob>) => { });
+worker.on("active", async (job: Job<EmailJob>) => {});
 
 worker.on("failed", async (job: Job<EmailJob> | undefined, err: Error) => {
   if (!job) {

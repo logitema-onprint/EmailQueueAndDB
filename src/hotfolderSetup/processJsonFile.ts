@@ -20,8 +20,6 @@ import { ProductOrderData } from "../queries/productOrder/createQuery";
 import { productOrderQueries } from "../queries/productOrder";
 import { validateOrderData } from "./validateOrderData";
 
-
-
 export async function processJsonFile(filePath: string): Promise<boolean> {
   const fileName = path.basename(filePath);
 
@@ -30,9 +28,11 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
     const jsonData = JSON.parse(fileContent);
     log.info(`Processing JSON data from file: ${fileName}`);
 
-    const validationResult = validateOrderData(jsonData)
+    const validationResult = validateOrderData(jsonData);
     if (!validationResult.isValid) {
-      log.error(`Validation failed for ${fileName}: ${validationResult.message}`);
+      log.error(
+        `Validation failed for ${fileName}: ${validationResult.message}`
+      );
       return false;
     }
 
@@ -74,19 +74,31 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
     const customerResult = await customerQueries.createQuery(custumerData);
     logger.info(`Customer processed: ${customerResult.message}`);
 
-
-    logger.debug(`sales_agent_name type: ${typeof jsonData.sales_agent_name}, value: ${JSON.stringify(jsonData.sales_agent_name)}`);
-
+    logger.debug(
+      `sales_agent_name type: ${typeof jsonData.sales_agent_name}, value: ${JSON.stringify(
+        jsonData.sales_agent_name
+      )}`
+    );
 
     let saleAgentParts = ["", ""];
-    if (typeof jsonData.sales_agent_name === "string" && jsonData.sales_agent_name.trim() !== "") {
+    if (
+      typeof jsonData.sales_agent_name === "string" &&
+      jsonData.sales_agent_name.trim() !== ""
+    ) {
       saleAgentParts = jsonData.sales_agent_name.split(/,\s*tel\.\s*/);
     } else {
-      logger.warn(`Invalid sales_agent_name for ${fileName}: ${JSON.stringify(jsonData.sales_agent_name)}`);
+      logger.warn(
+        `Invalid sales_agent_name for ${fileName}: ${JSON.stringify(
+          jsonData.sales_agent_name
+        )}`
+      );
     }
 
     const salesAgentData: SalesAgenData = {
-      fullText: typeof jsonData.sales_agent_name === "string" ? jsonData.sales_agent_name : "",
+      fullText:
+        typeof jsonData.sales_agent_name === "string"
+          ? jsonData.sales_agent_name
+          : "",
       name: saleAgentParts[0]?.trim() || "",
       phoneNumber: saleAgentParts[1]?.trim() || "",
     };
@@ -99,7 +111,6 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
         );
         logger.info(`Sales agent processed: ${salesAgentResponse.message}`);
 
-        // Simplified way to get the sales agent ID
         if (salesAgentResponse.success && salesAgentResponse.data?.id) {
           salesAgentId = salesAgentResponse.data.id;
         } else {
@@ -109,7 +120,11 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
         logger.error(`Error processing sales agent: ${error}`);
       }
     } else {
-      logger.warn(`Skipping sales agent creation due to missing name or phone number: ${JSON.stringify(salesAgentData)}`);
+      logger.warn(
+        `Skipping sales agent creation due to missing name or phone number: ${JSON.stringify(
+          salesAgentData
+        )}`
+      );
     }
 
     for (const item of items) {
@@ -124,6 +139,14 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
 
       try {
         const productResponse = await productQueries.createQuery(productData);
+
+        if (productResponse.newProduct) {
+          logger.info(`New product created: ${productResponse.message}`);
+        }
+
+        if (!productResponse.newProduct) {
+          logger.info(`Product already exists: ${productResponse.message}`);
+        }
         logger.info(`Product processed: ${productResponse.message}`);
       } catch (error) {
         logger.error(
@@ -174,7 +197,7 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
     if (!orderResponse.orderExist && orderResponse.createJobs) {
       const tagIds = (await rulesQueries.getGlobalRule()).data?.tags || [];
       const tagData = await Promise.all(
-        tagIds.map(async (tagId) => {
+        tagIds.map(async (tagId: number) => {
           const result = await tagQueries.getTag(tagId);
           return result.data;
         })
@@ -236,12 +259,15 @@ export async function processJsonFile(filePath: string): Promise<boolean> {
         }
       }
 
-      console.log("Last type:", isLastOrder.orderToInactive);
       logger.debug(isLastOrder.message);
 
       if (isLastOrder.isLast) {
-        await orderQueries.updateOrderLastKey(Number(isLastOrder.orderToInactive));
-        await QueueService.makeInactiveOrders([Number(isLastOrder.orderToInactive)]);
+        await orderQueries.updateOrderLastKey(
+          Number(isLastOrder.orderToInactive)
+        );
+        await QueueService.makeInactiveOrders([
+          Number(isLastOrder.orderToInactive),
+        ]);
       }
 
       logger.info(

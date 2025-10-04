@@ -2,28 +2,28 @@ import { Request, Response, RequestHandler } from "express";
 import logger from "../../utils/logger";
 import { TemplateData } from "../../queries/templateQueries/createTemplate";
 import { templateQueries } from "../../queries/templateQueries";
-import { error } from "console";
 
 export const createTemplate: RequestHandler = async (
   req: Request,
   res: Response
 ) => {
   try {
-    const { htmlUrl, jsonUrl, templateName, templateType } = req.body 
+    const { htmlUrl, jsonUrl, templateName, templateType, templateSubject } = req.body;
 
-    if (!htmlUrl || !jsonUrl || !templateName || !templateType) {
+    if (!htmlUrl || !jsonUrl || !templateName || !templateType || !templateSubject) {
       res.status(400).json({
         success: false,
         message: "Missing required fields",
       });
-      return; // Added return statement to prevent further execution
+      return;
     }
-    
+
     const data: TemplateData = {
-      type: templateType, // This maps templateType from req.body to type in TemplateData
+      type: templateType,
       htmlUrl,
       jsonUrl,
       templateName,
+      templateSubject,
     };
 
     const createTemplate = await templateQueries.createTemplate(data);
